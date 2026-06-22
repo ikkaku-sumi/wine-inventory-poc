@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ワイン在庫管理 — 現場（スマホ）操作デモ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --primary:#8a1c3d; --primary-hover:#701630; --primary-weak:#f6e9ee; --primary-weak-bd:#e7cdd6;
+    --ink:#1a1c1f; --ink-2:#42403f; --muted:#5f5a5c;
+    --line:#d7dbe0; --line-2:#c4c9d0;
+    --bg:#eceef1; --surface:#ffffff; --surface-2:#f3f5f7;
+    --green:#1f7a40;
+    --sans:"Noto Sans JP",-apple-system,"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic",sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    font-size:16px;line-height:1.7;-webkit-font-smoothing:antialiased;
+    display:flex;flex-direction:column;align-items:center;padding:32px 16px 56px}
+  a{color:var(--primary)}
+
+  .intro{max-width:520px;text-align:center;margin-bottom:24px}
+  .intro .eyebrow{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--primary);
+    background:var(--primary-weak);border:1px solid var(--primary-weak-bd);padding:4px 12px;border-radius:99px;margin-bottom:12px}
+  .intro h1{font-size:24px;font-weight:700;margin:0 0 8px;line-height:1.4}
+  .intro p{font-size:15px;color:var(--ink-2);margin:0}
+  .intro .links{margin-top:14px;font-size:14px}
+
+  /* phone */
+  .phone{width:390px;max-width:100%;background:#15171a;border-radius:40px;padding:12px;
+    box-shadow:0 18px 50px rgba(20,24,30,.28)}
+  .scr{background:var(--surface);border-radius:30px;overflow:hidden;height:720px;display:flex;flex-direction:column}
+  .appbar{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);background:#fff}
+  .avatar{width:38px;height:38px;border-radius:50%;background:var(--primary);color:#fff;display:flex;
+    align-items:center;justify-content:center;flex:none}
+  .avatar svg{width:22px;height:22px}
+  .appbar .nm{font-weight:700;font-size:15px;line-height:1.2}
+  .appbar .nm small{display:block;font-weight:400;font-size:11px;color:var(--muted);margin-top:2px}
+  .appbar .nm small .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:4px;vertical-align:1px}
+  .lw{margin-left:auto;font-size:10px;font-weight:700;color:var(--muted);border:1px solid var(--line);padding:2px 7px;border-radius:5px}
+
+  .chat{flex:1;overflow-y:auto;padding:16px 14px;background:var(--surface-2);display:flex;flex-direction:column;gap:10px}
+  .m{max-width:80%;font-size:14px;line-height:1.6;border-radius:14px;padding:10px 13px;word-break:break-word}
+  .m.bot{align-self:flex-start;background:#fff;border:1px solid var(--line);border-top-left-radius:4px;color:var(--ink)}
+  .m.you{align-self:flex-end;background:var(--primary);color:#fff;border-top-right-radius:4px}
+  .m.you b{color:#fff}
+  .m.bot b{color:var(--primary)}
+  .m.sys{align-self:center;max-width:none;background:transparent;color:var(--muted);font-size:11px;padding:2px}
+  .photo{display:flex;align-items:center;gap:10px}
+  .photo .ic{width:40px;height:40px;border-radius:8px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;flex:none}
+  .photo .ic svg{width:22px;height:22px;color:#fff}
+  .photo b{display:block;font-size:13px}
+  .photo i{font-style:normal;font-size:11px;opacity:.85}
+  .inbtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .inbtn{all:unset;cursor:pointer;font-size:13px;font-weight:700;padding:7px 14px;border-radius:8px;
+    background:var(--primary);color:#fff;text-align:center}
+  .inbtn.ghost{background:#fff;color:var(--primary);border:1px solid var(--primary)}
+  .typing{display:flex;gap:4px;align-items:center;padding:13px}
+  .typing span{width:7px;height:7px;border-radius:50%;background:#b8bcc2;animation:bl 1.2s infinite}
+  .typing span:nth-child(2){animation-delay:.2s}.typing span:nth-child(3){animation-delay:.4s}
+  @keyframes bl{0%,60%,100%{opacity:.3}30%{opacity:1}}
+
+  .dock{padding:12px 12px 14px;border-top:1px solid var(--line);background:#fff}
+  .dock .label{font-size:11px;color:var(--muted);margin:0 2px 8px}
+  .dock .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;
+    padding:9px 13px;border-radius:99px;border:1px solid var(--primary);color:var(--primary);background:#fff}
+  .chip:hover{background:var(--primary-weak)}
+  .chip.reset{border-color:var(--line-2);color:var(--muted)}
+  .chip svg{width:16px;height:16px}
+
+  .foot{max-width:520px;text-align:center;margin-top:22px;font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+  <div class="intro">
+    <div class="eyebrow">現場（スマホ）操作デモ</div>
+    <h1>現場がやることは「写真を送る」だけ</h1>
+    <p>会社の <b>LINE WORKS</b> のチャットに、仕入れたら納品書、開栓したらボトルの写真を送るだけ。AIが読み取り、台帳に反映します。下のボタンを押して試してください。</p>
+    <div class="links"><a href="https://ikkaku-sumi.github.io/wine-inventory-poc/" target="_blank" rel="noopener">▸ PC管理画面（検品・在庫）のデモはこちら</a></div>
+  </div>
+
+  <div class="phone">
+    <div class="scr">
+      <div class="appbar">
+        <div class="avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12V8a4 4 0 014-4h2M9 21h6a2 2 0 002-2v-7a5 5 0 00-10 0v7a2 2 0 002 2zM10 8h4"/></svg></div>
+        <div class="nm">ワイン在庫アシスタント<small><span class="dot"></span>オンライン</small></div>
+        <div class="lw">LINE WORKS</div>
+      </div>
+      <div class="chat" id="chat"></div>
+      <div class="dock">
+        <div class="label">現場の操作（押して送信）</div>
+        <div class="chips">
+          <button class="chip" onclick="flowReceive()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 001 1h4M5 3h9l5 5v11a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"/></svg>納品書を送る（入庫）</button>
+          <button class="chip" onclick="flowSell()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>開栓ボトルを送る（出庫）</button>
+          <button class="chip" onclick="flowAsk()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>在庫を聞く（照会）</button>
+          <button class="chip reset" onclick="resetChat()">最初から</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">合成データのデモです。実在庫ではありません。チャットUIはイメージで、LINE WORKS の正式画面ではありません。</div>
+
+<script>
+  const CONSOLE_URL = "https://ikkaku-sumi.github.io/wine-inventory-poc/";
+  const camSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>';
+  const docSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 001 1h4M5 3h9l5 5v11a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"/></svg>';
+
+  const chatEl = () => document.getElementById("chat");
+  function scrollDown(){ const c=chatEl(); c.scrollTop = c.scrollHeight; }
+  function node(html){ const d=document.createElement("div"); d.innerHTML=html.trim(); return d.firstChild; }
+  function add(html){ chatEl().appendChild(node(html)); scrollDown(); }
+  function sys(t){ add(`<div class="m sys">${t}</div>`); }
+  function youMsg(html){ add(`<div class="m you">${html}</div>`); }
+  function youPhoto(title, sub){ add(`<div class="m you"><div class="photo"><span class="ic">${camSvg}</span><div><b>${title}</b><i>${sub}</i></div></div></div>`); }
+  function botMsg(html){ add(`<div class="m bot">${html}</div>`); }
+  function wait(ms){ return new Promise(r=>setTimeout(r, ms)); }
+  async function botSay(html, ms){
+    const t = node(`<div class="m bot typing"><span></span><span></span><span></span></div>`);
+    chatEl().appendChild(t); scrollDown();
+    await wait(ms||900);
+    t.remove(); botMsg(html);
+  }
+
+  let busy = false;
+
+  async function flowReceive(){
+    if(busy) return; busy = true;
+    youPhoto("納品書の写真", "owariya_20260622.pdf");
+    await botSay('owariya 様の納品書（3件）を読み取りました。<br>・2件は<b>高信頼で自動確定</b>（在庫へ反映済み）<br>・1件だけ<b>要確認</b>です。検品をお願いします。'
+      + `<div class="inbtns"><a class="inbtn" href="${CONSOLE_URL}" target="_blank" rel="noopener">検品をひらく →</a></div>`, 1200);
+    busy = false;
+  }
+
+  async function flowSell(){
+    if(busy) return; busy = true;
+    youPhoto("開栓したボトルの写真", "bottle.jpg");
+    await botSay('<b>Chambolle-Musigny 1er Cru Les Amoureuses 2018 / Roumier</b> と認識しました。<br>1本を<b>出庫</b>として記録しますか？'
+      + '<div class="inbtns"><button class="inbtn" onclick="confirmSell(this)">確定する</button><button class="inbtn ghost" onclick="fixSell(this)">修正</button></div>', 1200);
+    busy = false;
+  }
+  async function confirmSell(btn){
+    const box = btn.closest(".inbtns"); if(box) box.remove();
+    youMsg("確定する");
+    await botSay('記録しました。<b>hakubi 棚F4 残り2本</b>です。お疲れさまでした。', 800);
+  }
+  async function fixSell(btn){
+    const box = btn.closest(".inbtns"); if(box) box.remove();
+    youMsg("修正");
+    await botSay('候補から正しい銘柄を選べます（デモでは省略）。誤認識はこの一手間だけで直せます。', 800);
+  }
+
+  async function flowAsk(){
+    if(busy) return; busy = true;
+    youMsg("シャンボール アムルーズ ある？");
+    await botSay('<b>hakubi</b> の棚 <b>F4</b> に <b>3本</b> あります（2018 / Roumier）。<br>Artisan には在庫がありません。', 1100);
+    busy = false;
+  }
+
+  function greet(){
+    sys("今日 10:24");
+    botMsg('ワイン在庫アシスタントです。仕入れたら<b>納品書／ラベルの写真</b>を、開栓したら<b>ボトルの写真</b>を送ってください。在庫の質問にも答えます。');
+  }
+  function resetChat(){ chatEl().innerHTML = ""; busy = false; greet(); }
+
+  greet();
+</script>
+</body>
+</html>
