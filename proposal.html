@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ワイン在庫管理アプリ ｜ 提案資料 v0.4</title>
+<style>
+  :root{
+    --wine:#8a1c3d; --wine-d:#6f1531; --wine-weak:#f6e9ee; --wine-weak-bd:#e7cdd6;
+    --bg:#f5f4f5; --card:#ffffff; --ink:#1e1c1d; --ink2:#42403f; --muted:#5f5a5c;
+    --line:#e3dee0; --line2:#cfc8cb;
+    --green:#1f7a40; --green-bg:#e7f4ec; --green-bd:#bfe2cd;
+    --radius:8px;
+    --sans:"Noto Sans JP",system-ui,-apple-system,"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
+    --mono:"Noto Sans Mono",ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); font-size:16px; line-height:1.75; -webkit-font-smoothing:antialiased}
+  a{color:var(--wine)}
+  :focus-visible{outline:2px solid var(--wine); outline-offset:2px}
+
+  header{position:sticky; top:0; z-index:10; background:#fff; border-top:3px solid var(--wine); border-bottom:1px solid var(--line)}
+  .bar{max-width:1080px; margin:0 auto; padding:12px 24px; display:flex; flex-wrap:wrap; align-items:center; gap:12px}
+  .brand{font-weight:700; color:var(--wine); font-size:15px}
+  .brand .ver{font-size:11px; color:#fff; background:var(--wine); padding:2px 8px; border-radius:4px; margin-left:6px; font-weight:600}
+  nav{display:flex; flex-wrap:wrap; gap:2px; margin-left:auto}
+  nav a{color:var(--ink2); text-decoration:none; font-size:13px; padding:8px 11px; border-radius:6px}
+  nav a:hover{background:var(--wine-weak); color:var(--wine)}
+  nav .sep{width:1px; background:var(--line); margin:4px 6px}
+
+  main{max-width:1080px; margin:0 auto; padding:0 24px 88px; counter-reset:sec}
+  section{scroll-margin-top:76px; margin:48px 0}
+
+  /* 表紙（cover） */
+  .cover{padding:48px 0 24px; border-bottom:1px solid var(--line)}
+  .eyebrow{display:inline-block; font-size:12px; font-weight:700; letter-spacing:.08em; color:var(--wine); background:var(--wine-weak); border:1px solid var(--wine-weak-bd); padding:4px 12px; border-radius:99px; margin-bottom:16px}
+  .cover h1{font-size:40px; font-weight:800; line-height:1.25; margin:0 0 14px; letter-spacing:.01em}
+  .cover .lede{font-size:18px; color:var(--ink2); margin:0 0 22px; max-width:62ch; line-height:1.7}
+  .cover .lede b{color:var(--wine)}
+  .ctas{display:flex; flex-wrap:wrap; gap:10px; margin:4px 0 22px}
+  .cta{display:inline-block; text-decoration:none; font-size:14px; font-weight:700; padding:11px 22px; border-radius:8px}
+  .cta.primary{background:var(--wine); color:#fff} .cta.primary:hover{background:var(--wine-d)}
+  .cta.ghost{background:#fff; color:var(--wine); border:1px solid var(--wine)} .cta.ghost:hover{background:var(--wine-weak)}
+  .meta{display:flex; flex-wrap:wrap; gap:8px 28px; font-size:13px; color:var(--muted); padding-top:18px; border-top:1px solid var(--line)}
+  .meta b{color:var(--ink); font-weight:700; margin-right:6px}
+
+  h1{font-size:28px; font-weight:700; margin:6px 0 4px}
+  .sub{color:var(--ink2); margin:0 0 14px; font-size:15px}
+  h2{display:flex; align-items:center; gap:12px; font-size:22px; font-weight:700; margin:38px 0 14px; padding-bottom:10px; border-bottom:1px solid var(--line2)}
+  h2::before{counter-increment:sec; content:counter(sec,decimal-leading-zero); flex:none; min-width:34px; height:34px; padding:0 6px; background:var(--wine); color:#fff; border-radius:7px; font-size:15px; font-weight:700; display:inline-flex; align-items:center; justify-content:center}
+  h3{font-size:16px; font-weight:700; margin:22px 0 8px; color:var(--ink)}
+  p{margin:10px 0}
+
+  .lead{background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:20px 22px; margin:22px 0}
+  .lead p{margin:0} .lead p + p{margin-top:12px}
+  .lead b{color:var(--wine)}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:18px 20px; margin:16px 0}
+  .mermaid{background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:20px; overflow:auto; text-align:center; margin:14px 0}
+  table.data{width:100%; border-collapse:collapse; font-size:14px; margin:14px 0}
+  table.data th,table.data td{border:1px solid var(--line); padding:10px 12px; text-align:left; vertical-align:top}
+  table.data th{background:var(--wine-weak); color:var(--wine); font-weight:700}
+  table.data tr:nth-child(even) td{background:#faf8f9}
+  .two{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+  .pills{display:flex; flex-wrap:wrap; gap:8px; margin:20px 0}
+  .pill{display:inline-block; font-size:13px; padding:5px 12px; border-radius:6px; background:var(--wine-weak); color:var(--wine); border:1px solid var(--wine-weak-bd); font-weight:600}
+  .pill.f{background:#eee; color:#555; border-color:#ddd}
+  .pill.g{background:var(--green-bg); color:var(--green); border-color:var(--green-bd)}
+  .note{font-size:13.5px; color:var(--muted)}
+  code{background:#f1ecee; padding:1px 6px; border-radius:4px; font-size:13.5px; font-family:var(--mono)}
+  footer{max-width:1080px; margin:0 auto; padding:24px; color:var(--muted); font-size:13px; border-top:1px solid var(--line)}
+
+  .steps{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; margin:18px 0}
+  .step{background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:22px 18px 16px; position:relative}
+  .step .n{position:absolute; top:-13px; left:18px; width:28px; height:28px; border-radius:7px; background:var(--wine); color:#fff; font-size:15px; font-weight:700; display:flex; align-items:center; justify-content:center}
+  .step h4{margin:6px 0 6px; font-size:15px; color:var(--ink); font-weight:700}
+  .step p{margin:0; font-size:14px; color:var(--ink2)}
+
+  .divider{display:flex; align-items:center; gap:14px; margin:52px 0 8px; color:var(--muted); font-size:13px}
+  .divider::before,.divider::after{content:""; flex:1; height:1px; background:var(--line2)}
+  .divider b{background:#fff; color:var(--ink2); padding:5px 16px; border-radius:99px; font-size:13px; font-weight:700; border:1px solid var(--line2)}
+
+  @media(max-width:720px){ .two{grid-template-columns:1fr} .cover h1{font-size:30px} .cover .lede{font-size:16px} }
+  @media print{
+    header,nav,.ctas{display:none}
+    body{background:#fff; font-size:12px} main,footer{max-width:none}
+    section{margin:18px 0} .mermaid,.card,.step,table,.lead{page-break-inside:avoid}
+    a{color:var(--ink); text-decoration:none}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="brand">ワイン在庫管理アプリ ｜ 提案資料 <span class="ver">v0.4</span></div>
+    <nav>
+      <a href="#overview">概要</a>
+      <a href="#howto">使い方</a>
+      <a href="#mockups">画面イメージ</a>
+      <a href="#flow">ユーザーフロー</a>
+      <span class="sep"></span>
+      <a href="#arch">構成</a>
+      <a href="#lineworks">LINE WORKS</a>
+      <a href="#capture">捕捉方針</a>
+      <a href="#db">DB</a>
+      <a href="#seq">シーケンス</a>
+      <span class="sep"></span>
+      <a href="https://ikkaku-sumi.github.io/wine-inventory-poc/">画面モック</a>
+      <a href="https://ikkaku-sumi.github.io/wine-inventory-poc/" target="_blank" rel="noopener" style="background:var(--wine);color:#fff;font-weight:700">動くデモを開く →</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- ================= 非エンジニア向け ================= -->
+  <section id="overview">
+    <div class="cover">
+      <div class="eyebrow">提案資料 ・ ハイエンド飲食店向け</div>
+      <h1>ワイン在庫管理アプリ</h1>
+      <p class="lede">仕入れから提供まで、ワイン在庫を<b>手間なく正確に</b>。「売れてないのに減ってる」「原価率がなぜか変」を構造から無くし、将来の<b>AIソムリエ</b>につながる土台をつくります。</p>
+      <div class="ctas">
+        <a class="cta primary" href="https://ikkaku-sumi.github.io/wine-inventory-poc/" target="_blank" rel="noopener">PC管理画面のデモ</a>
+        <a class="cta primary" href="https://ikkaku-sumi.github.io/wine-inventory-poc/mobile.html" target="_blank" rel="noopener">スマホ（現場）のデモ</a>
+        <a class="cta ghost" href="https://ikkaku-sumi.github.io/wine-inventory-poc/">画面モック</a>
+      </div>
+      <div class="meta">
+        <span><b>対象</b>店舗開発ご担当・経営幹部／委託エンジニア</span>
+        <span><b>版</b>v0.4（ドラフト）</span>
+        <span><b>更新</b>2026-06-22</span>
+      </div>
+    </div>
+
+    <div class="lead">
+      <p><b>ひとことで：</b>仕入れたら写真を送るだけ。AIが下書きし、店長は“違うところだけ”確認。売れたらPOSで自動。<b>在庫はいつでも正確、棚卸しは年4回でOK。</b></p>
+      <p><b>うれしいこと：</b>「売れてないのに減ってる」「原価率がなぜか変」といった現状の混乱が消え、<b>どの店舗に何が何本あるか</b>が一目で分かります。</p>
+    </div>
+    <div class="pills">
+      <span class="pill">v1：まず hakubi 1店舗で</span>
+      <span class="pill">5店舗の全体在庫＋店舗PLが射程</span>
+      <span class="pill g">現場の手間を極限まで削減</span>
+      <span class="pill g">POS＝ポスタス第一候補（差し替え可）</span>
+      <span class="pill f">AI＝Gemini想定／QR＝未定（相談中）</span>
+    </div>
+  </section>
+
+  <section id="howto">
+    <h2>使い方（現場がやることは「写真を送る」だけ）</h2>
+    <div class="steps">
+      <div class="step"><div class="n">1</div><h4>仕入れたら</h4><p>納品書やラベルを<b>写真で送る</b>だけ。データで届く仕入先は<b>撮影すら不要</b>（自動取込）。</p></div>
+      <div class="step"><div class="n">2</div><h4>確認（店長）</h4><p>AIが下書き → 店長は<b>“違うところだけ”</b>チェックして確定。棚と売価は既定値をワンタップ。</p></div>
+      <div class="step"><div class="n">3</div><h4>売れたら</h4><p><b>POS（ポスタス）で自動</b>。暫定は開栓時にボトルを1枚撮るだけ。手で消し込む作業は無くなる。</p></div>
+      <div class="step"><div class="n">4</div><h4>いつでも</h4><p>在庫は<b>リアルタイムで正確</b>。棚卸しは数えるのでなく<b>“答え合わせ”を年4回</b>。</p></div>
+    </div>
+    <p class="note">役割の合言葉：<b>入力はAI／確認は店長／数えるのは年4回／現場は写真だけ。</b></p>
+  </section>
+
+  <section id="mockups">
+    <h2>画面イメージ（動くPoC）</h2>
+    <p><b>実際にブラウザで操作できるPoCを公開しています</b>（合成データ・インストール/ログイン不要）。在庫一覧（<b>銘柄／VTG／生産者／色／産地／味わい／在庫／取得単価／売価／原価率／評価額</b>）、<b>棚マップ</b>、入庫（検品）・出庫・店舗間移動・棚卸し、イベント台帳が<b>そのまま動きます</b>。UIはデジタル庁デザインシステムに準拠。</p>
+    <p><a href="https://ikkaku-sumi.github.io/wine-inventory-poc/" target="_blank" rel="noopener" style="display:inline-block;background:var(--wine);color:#fff;text-decoration:none;padding:11px 20px;border-radius:9px;font-size:14px;font-weight:700">動くPoCを開く（ブラウザで操作できます）</a></p>
+    <p class="note">「在庫一覧→出庫で1本売る（消し忘れゼロ）→店舗間移動で総本数は不変→棚卸しで差分が表面化→イベント台帳で全証跡」を実機で体感できます。<br>参考：<a href="https://ikkaku-sumi.github.io/wine-inventory-poc/">静的な画面モックアップ（旧・雰囲気確認用）</a>も残していますが、配色・項目はPoC側が最新です。</p>
+  </section>
+
+  <section id="flow">
+    <h2>ユーザーフロー（誰が・いつ・どう動くか）</h2>
+    <h3>① 役割の早見表</h3>
+    <table class="data">
+      <tr><th>アクター</th><th>いつ</th><th>何を</th><th>ツール</th></tr>
+      <tr><td>現場スタッフ</td><td>入荷時・提供時</td><td>納品書/ラベル撮影、開栓時のボトル撮影</td><td>LINE WORKS / Web</td></tr>
+      <tr><td>ソムリエ／店長</td><td>入荷後・随時・四半期</td><td>検品確定、値付け、棚卸し、（v2）移動</td><td>Web管理</td></tr>
+      <tr><td>本部／経理</td><td>月次</td><td>原価率・在庫評価・店舗PLの確認</td><td>Web（読取）</td></tr>
+      <tr><td>POS（ポスタス）</td><td>会計時</td><td>売上を記録 → 出庫として自動連携</td><td>API/CSV</td></tr>
+      <tr><td>システム／AI</td><td>常時</td><td>画像解析・銘柄マッチ・差分算出・現在在庫計算</td><td>サーバレス関数</td></tr>
+    </table>
+
+    <h3>② 運用リズム（いつ動くか）</h3>
+    <pre class="mermaid">
+timeline
+  title 運用リズム — 誰がいつ動くか
+  section 入荷時 随時
+    現場スタッフ : 納品書やラベルを撮影してBotへ送る
+    AI : 銘柄を曖昧マッチし検品候補を作る
+    ソムリエ店長 : 例外だけ確認して入庫を確定する
+  section 営業中 毎日
+    現場スタッフ : お客様に提供する
+    ポスタス : 会計の売上を自動連携し出庫に（本命）
+    現場スタッフ : 開栓時にボトルを撮影し出庫を記録（暫定）
+  section 四半期
+    ソムリエ店長 : 棚卸しで実数と差分を答え合わせ
+    本部経理 : 原価率や在庫評価と店舗PLを確認
+    </pre>
+    <p class="note">入出庫が正確に積み上がるほど、棚卸しは月1→四半期へ激減。出庫はポスタス連携で“手間ゼロ”が本命。</p>
+  </section>
+
+  <div class="divider"><b>ここから先は技術者向け（委託エンジニア用）</b></div>
+
+  <!-- ================= 技術者向け ================= -->
+  <section id="arch">
+    <h2>システム構成図</h2>
+    <p>正データ（コア）を1箇所に集約し、クライアントは差し替え可能な「読む／書く側」にする。LINE WORKS や POS の変更がコアに波及しない構造。</p>
+    <pre class="mermaid">
+graph TD
+  subgraph CL["クライアント層（差し替え可能）"]
+    LW["LINE WORKS / Web<br/>写真で入庫／開栓時のボトル撮影"]
+    WEB["Web管理画面<br/>検品・棚卸し・マスタ・在庫照会"]
+    SOM["将来：ソムリエAI"]
+    PL["将来：店舗PL／原価"]
+  end
+  subgraph AP["API層（統一窓口）"]
+    REST["REST／RPC API ＋認証"]
+    FN["サーバレス関数<br/>取込受信・VLM解析・曖昧マッチ"]
+  end
+  subgraph CO["コア（唯一の正データ）"]
+    DB[("在庫イベント台帳<br/>＋銘柄マスタ<br/>＋現在在庫ビュー")]
+    ST["写真Storage"]
+  end
+  subgraph EX["外部サービス"]
+    VLM["VLM／画像認識<br/>当面 Gemini 想定"]
+    POS["POSアダプタ<br/>ポスタス第一候補/他POSも可"]
+  end
+  LW <--> FN
+  WEB --> REST
+  SOM --> REST
+  PL --> REST
+  FN --> REST
+  FN --> VLM
+  FN --> ST
+  REST --> DB
+  POS -.売上連携.-> FN
+  classDef core fill:#e9f5ee,stroke:#2e8b57,color:#1d6b43;
+  classDef future fill:#f2f2f2,stroke:#9a9a9a,color:#666,stroke-dasharray:5 4;
+  class DB,ST core;
+  class SOM,PL future;
+    </pre>
+    <table class="data">
+      <tr><th>層</th><th>採用候補</th></tr>
+      <tr><td>コアDB</td><td>Supabase（Managed Postgres）— 自動API・認証・Storage・乗換可</td></tr>
+      <tr><td>画像認識</td><td>当面 Gemini 想定／取込関数の背後で差し替え可</td></tr>
+      <tr><td>POS</td><td>ポスタス第一候補（API/CSVあり）。他POSもアダプタで差し替え可</td></tr>
+      <tr><td>取込口</td><td>LINE WORKS Bot ＋ Web/PWA（不安なら Web から開始可・ADR-001）</td></tr>
+    </table>
+  </section>
+
+  <section id="lineworks">
+    <h2>LINE WORKS（取込口・差し替え可）</h2>
+    <p><b>LINE WORKS とは：</b>企業向けのビジネスチャット（貴社で既に利用中）。<b>消費者向けの「LINE」とは別物</b>で、プログラムから操作できる <b>Bot／Webhook の API</b> を持ちます。これを使い「現場が普段使うチャットに写真を送るだけ」で入庫・出庫を取り込みます。</p>
+    <h3>前提知識：利用に必要なこと（＝確認事項 Q-06）</h3>
+    <table class="data">
+      <tr><th>前提</th><th>内容</th><th>担当</th></tr>
+      <tr><td>管理者によるBot有効化</td><td>会社の管理画面（Developer Console）でBotを登録し、API利用を有効化する。<b>情シス／管理者の承認</b>が必要</td><td>情シス／管理者</td></tr>
+      <tr><td>画像の受信許可</td><td>Botが「画像」メッセージを受け取れる設定にする</td><td>情シス／管理者</td></tr>
+      <tr><td>受信サーバ</td><td>写真の通知を受けるURL（Webhook）を用意。<b>署名検証</b>で正規の通知だけを受け、画像は専用APIで取得。常時稼働 or サーバレスで運用</td><td>開発（当社）</td></tr>
+      <tr><td>認証</td><td>サーバ側でサービスアカウント（OAuth/JWT）により安全に接続する</td><td>開発（当社）</td></tr>
+    </table>
+    <p class="note">承認に時間がかかる場合は <b>Webの写真アップロードで代替可能</b>（LINE WORKS非依存・承認不要）。LINE WORKS はあくまで“入口の1つ”で、後から差し替え・追加ができます（ADR-001）。</p>
+    <div class="two">
+      <div class="card" style="background:#edf7f0;border-color:#bfe2cd">
+        <h4 style="margin:0 0 6px;color:#256b41">やること</h4>
+        <p style="margin:0;font-size:13.5px">入庫の納品書/ラベル写真・開栓ボトル写真の受付、検品依頼の通知、在庫照会の応答。</p>
+      </div>
+      <div class="card" style="background:#fdeef0;border-color:#f2c9d1">
+        <h4 style="margin:0 0 6px;color:#a32b43">やらないこと（＝コア側）</h4>
+        <p style="margin:0;font-size:13.5px">正データ保持・在庫/原価/PL計算・検品/棚卸し確定UI・値付けの最終決定。</p>
+      </div>
+    </div>
+    <p class="note">LINE WORKS は1アダプタにすぎず<b>差し替え可能</b>。未経験で不安なら Web・PWA から始められる（依存ゼロ・承認不要）。詳細 ADR-001。</p>
+  </section>
+
+  <section id="capture">
+    <h2>捕捉の方針：撮影 / QR / POS</h2>
+    <div class="two">
+      <div class="card" style="background:#eef3fb;border-color:#bcd0ee">
+        <h4 style="color:#2a5ca8;margin:0 0 6px">撮影＋VLM（当面Gemini）＝「新しい情報を読む」</h4>
+        <ul style="margin:0;padding-left:18px;font-size:13px"><li>納品書/ラベルの文字を解釈して取り込む＝<b>入庫</b></li><li>1本同定は高精度。混在棚の一括カウントは苦手</li></ul>
+      </div>
+      <div class="card" style="background:#eef7ef;border-color:#bfe2cd">
+        <h4 style="color:#256b41;margin:0 0 6px">QRコード＝「既知の個体を追跡する」</h4>
+        <ul style="margin:0;padding-left:18px;font-size:13px"><li>貼ってあるIDを読むだけ（一意・解釈不要）＝<b>移動・棚卸し</b></li><li>事前にQRを貼る手間が必要・<b>採用は未定（相談中）</b></li></ul>
+      </div>
+    </div>
+    <pre class="mermaid">
+graph LR
+  A["入庫：撮影しVLM(Gemini)が情報を取り込む"] -->|"このときQRを発行・貼付（採用時）"| B["銘柄マスタ＋個体ID"]
+  B --> C["移動：A店でスキャン→−A／B店で＋B（同一ID）"]
+  B --> D["棚卸し：歩いてスキャン／未スキャン＝消えた本"]
+  classDef core fill:#e9f5ee,stroke:#2e8b57,color:#1d6b43;
+  class B core;
+    </pre>
+    <table class="data">
+      <tr><th>役割</th><th>本命</th><th>暫定</th></tr>
+      <tr><td>出庫＝販売の捕捉</td><td>POS＝ポスタス（自動・手間ゼロ）<br><span class="note">他POSも差し替え可・前提にしない</span></td><td>開栓時にボトル1本を撮影</td></tr>
+      <tr><td>棚卸し＝答え合わせ</td><td>四半期に照合（QR or 案内手動）</td><td>頻度を 月1→四半期</td></tr>
+    </table>
+    <p class="note">ポスタスはAPI・CSVあり＝自動連携は可能。要確認＝(a)アクセス可否 (b)「どの1本(VTG)か」の粒度（→C-3/C-4）。POSは差し替え可能なアダプタにし、開栓撮影をPOS非依存の“床”にする。</p>
+
+    <h3>ラベル読取の限界と「QRハイブリッド」（まず速度を検証する）</h3>
+    <p>ワインのラベルは独特な書体・装飾が多く、<b>AI（VLM）が確実に・速く読めるかは銘柄次第で未知数</b>です。登録は連続でテンポよく進めたいので、ここで詰まると現場が使ってくれません。だから<b>まず「登録1本あたりの所要時間と正答率」をPoCで実測</b>し、その数字を見てから同定手段（ラベル読取／QR／併用）と価格帯の線引きを確定します。＝<b>解き方を決める前に、前提を検証する。</b></p>
+
+    <h3>QRコードのメリット・デメリット</h3>
+    <div class="two">
+      <div class="card" style="background:#edf7f0;border-color:#bfe2cd">
+        <h4 style="margin:0 0 8px;color:#256b41">メリット</h4>
+        <ul style="margin:0;padding-left:18px;font-size:13.5px;line-height:1.85">
+          <li><b>同定が速く確実</b>（難読ラベルでも詰まらない）</li>
+          <li><b>個体認証＝1本ずつ管理</b>。以下がまとめて効く：</li>
+          <li>「どの1本/VTGか」が確定 → <b>POS出庫連携の最難所が解決</b></li>
+          <li>棚卸しが <b>「数える→かざすだけ」</b>／移動の取り違えゼロ</li>
+          <li><b>偽造防止・来歴</b>（高級帯では価値になる）</li>
+          <li>安い・普通のスマホで読める（専用機不要）</li>
+        </ul>
+      </div>
+      <div class="card" style="background:#fbf3e3;border-color:#ecd9ad">
+        <h4 style="margin:0 0 8px;color:#8a5a00">デメリット・留意点</h4>
+        <ul style="margin:0;padding-left:18px;font-size:13.5px;line-height:1.85">
+          <li><b>「貼る手間」が新たに発生</b>（誰が・いつ貼るか）</li>
+          <li><b>高級ボトルへの貼付抵抗</b>（¥100万級にシール可否＝A-3）</li>
+          <li>初回はQRが無い → <b>ラベル/納品書OCRが結局必要</b></li>
+          <li>剥がれ・汚れ（結露・保管環境）→ 貼り直し運用</li>
+          <li><b>“おしゃれQR”は意匠と読取安定性がトレードオフ</b>（要PoC）</li>
+          <li>提供時に見えない配慮／個体ID↔銘柄の紐付け運用</li>
+        </ul>
+      </div>
+    </div>
+    <p class="note"><b>判断軸：</b>「貼る手間（新規・1回）」と「同定・棚卸し・移動・出庫で<b>毎日</b>削減される手間（継続便益）」の天秤。回転の多い帯ほどQRが勝ち、回らない超高級帯はQR不要。どちらが大きいかは <b>速度検証PoCの数字</b> で確定する。</p>
+
+    <pre class="mermaid">
+graph TD
+  A["新規銘柄の初回登録"] --> B{"ラベルをVLMで読む<br/>速い・正確か?"}
+  B -->|"高信頼・速い"| C["銘柄を自動確定"]
+  B -->|"難読・低信頼"| D["候補提示＋人が一手<br/>（止めない）"]
+  C --> E["QRを発行・貼付<br/>※価格帯ごとに方式を選択"]
+  D --> E
+  E --> F["2回目以降はQRを撮るだけ＝一瞬"]
+  F --> G["移動・棚卸し・出庫も高速＋個体管理"]
+  classDef hot fill:#f6e9ee,stroke:#8a1c3d,color:#6f1531;
+  class F,G hot;
+    </pre>
+    <table class="data">
+      <tr><th>価格帯</th><th>同定方法（候補）</th><th>理由</th></tr>
+      <tr><td>普及〜中価格（大量）</td><td>QRコード（個体認証）</td><td>登録・棚卸し・移動が高速化。速度の恩恵が最大</td></tr>
+      <tr><td>高級（少量）</td><td>ネックタグ ／ ラベル撮影＋人の確認</td><td>ラベル・ガラスに触れない。本数が少なく丁寧に扱う</td></tr>
+      <tr><td>超高級（例：100万円級）</td><td>物理タグなし・手動／写真</td><td>貼付の心理的抵抗。本数が極少で速度影響なし</td></tr>
+    </table>
+    <p class="note">QRは「移動・棚卸しの追跡」だけでなく <b>「どの1本(VTG)か」(C-4)・偽造防止・来歴</b> にも効く＝<b>個体認証</b>の価値。ただし“おしゃれで読めるQR”は意匠と読取安定性がトレードオフ → 小さくPoC検証。貼付可否・上限金額・タイミングはご担当者に相談（確認事項 A-3）。</p>
+  </section>
+
+  <section id="db">
+    <h2>データベースの内容</h2>
+    <p>中核は <code>inventory_events</code>（在庫イベント台帳・追記専用）。現在在庫はこの合計で都度算出。</p>
+    <pre class="mermaid">
+erDiagram
+    stores ||--o{ shelves : has
+    stores ||--o{ inventory_events : at
+    wines ||--o{ inventory_events : of
+    wines ||--o{ delivery_lines : matched
+    suppliers ||--o{ deliveries : from
+    deliveries ||--o{ delivery_lines : has
+    inventory_events ||--o| inventory_events : transfer_pair
+    wines {
+        uuid id PK
+        text name_canonical
+        text producer
+        int vintage
+        int color_code
+        int country_code
+        text region_code
+        text taste_note
+        text taste_note_url
+        numeric standard_sell_price
+    }
+    inventory_events {
+        uuid id PK
+        text type
+        uuid wine_id FK
+        uuid store_id FK
+        uuid shelf_id FK
+        int qty_delta
+        numeric unit_cost
+        text source
+        uuid transfer_id
+        timestamptz occurred_at
+    }
+    stores { uuid id PK
+        text name }
+    shelves { uuid id PK
+        text code }
+    deliveries { uuid id PK
+        text status }
+    delivery_lines { uuid id PK
+        text raw_name
+        bool verified }
+    suppliers { uuid id PK
+        text name }
+    </pre>
+    <p class="note"><code>type</code>=RECEIVE/SELL/TRANSFER/ADJUST、<code>source</code>=DELIVERY_NOTE/PHOTO_BOTTLE/PHOTO_SHELF/POS(ポスタス)/手入力。現在在庫ビュー <code>current_stock</code> は <code>WHERE qty&gt;0</code> で「ないものは出ない」。<br><b>在庫ワインリスト/棚マップはこのビューを表示するだけ＝実装は容易。</b>難しいのは表示でなく“入出庫を正確に積むこと”で、そこを本設計（イベント台帳＋POS/撮影＋四半期の棚卸し）が解く。</p>
+  </section>
+
+  <section id="seq">
+    <h2>シナリオ別シーケンス</h2>
+
+    <h3>入庫（写真 → 例外検品 → 台帳）</h3>
+    <pre class="mermaid">
+sequenceDiagram
+    participant S as 現場
+    participant LW as LINE WORKS/Web
+    participant FN as 関数
+    participant VLM as VLM(Gemini)
+    participant DB as コアDB
+    participant SOM as 店長(Web)
+    S->>LW: 納品書/ラベルの写真
+    LW->>FN: Webhook（署名付き）
+    FN->>VLM: 画像解析（銘柄/数量/価格）
+    VLM-->>FN: 抽出結果
+    FN->>DB: 曖昧マッチ→検品候補(下書き)
+    FN-->>LW: 「取り込みました。検品お願いします」
+    SOM->>DB: 例外（不一致/新規）だけ確認・補正→確定 RECEIVE(+N)
+    Note over DB: 高信頼かつ発注一致は自動確定（手間最小化）
+    </pre>
+
+    <h3>出庫（本命POS＝ポスタス／暫定：開栓撮影）</h3>
+    <pre class="mermaid">
+sequenceDiagram
+    participant POS as ポスタス(会計)
+    participant FN as 関数
+    participant DB as コアDB
+    participant S as 現場
+    POS->>FN: 売上データ（API/CSV）＝本命・手間ゼロ
+    FN->>DB: SELL(−N, source=POS)
+    Note over POS,DB: 課題＝どの1本(VTG)か。メニュー↔在庫の紐付けを要確認
+    S->>FN: （暫定）開栓時にボトル写真
+    FN->>DB: ラベル同定→SELL(−1, source=PHOTO_BOTTLE)
+    </pre>
+
+    <h3>棚卸し（答え合わせ）／ 店舗間移動（v2・QR未定）</h3>
+    <pre class="mermaid">
+sequenceDiagram
+    participant SOM as 店長
+    participant DB as コアDB
+    participant A as A店
+    participant B as B店
+    SOM->>DB: 実数を確認（QR or 案内手動）→差分→ADJUSTで補正
+    Note over DB: 差分＝入出庫漏れ/ロス検知。四半期で十分
+    A->>DB: 移動登録（暫定フォーム or QR）→ −N@A
+    B->>DB: 受領 → ＋N@B（同一 transfer_id）
+    Note over DB: 全社で純増減ゼロ／店舗別は原価が移動。QR採否は相談中
+    </pre>
+  </section>
+</main>
+
+<footer>
+  出典：<code>docs/01〜05</code>・<code>ADR-001/002</code>・<code>デザインガイドライン</code>・<code>確認事項書</code>。最新反映：<b>動くPoCを公開</b>（<code>ikkaku-sumi.github.io/wine-inventory-poc</code>）／在庫一覧に VTG・生産者・色・産地・味わい・売価・原価率を独立表示／<b>棚マップ追加</b>／デジタル庁デザインシステム準拠でUI刷新／AI=Gemini想定／POS=ポスタス第一候補(差し替え可)／QR未定。
+  PoCは合成データ（機密データは含まない）。図はMermaid.js（初回表示にネット接続が必要）。
+</footer>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({
+    startOnLoad:true, theme:'base',
+    themeVariables:{ primaryColor:'#f6edf0', primaryBorderColor:'#7a1f3d', primaryTextColor:'#262223',
+      lineColor:'#a23a5b', secondaryColor:'#f3f0ec', tertiaryColor:'#fbf7f8',
+      fontFamily:'system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif', fontSize:'13px' },
+    flowchart:{ htmlLabels:true, curve:'basis' }, sequence:{ useMaxWidth:true }
+  });
+</script>
+</body>
+</html>
