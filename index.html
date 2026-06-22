@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ワイン在庫管理 PoC — イベント台帳デモ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  /* デジタル庁デザインシステム(DADS)のガイドライン準拠。ブランド=バーガンディ1本。
+     規律（8pxグリッド・本文16px/行間170%・コントラスト4.5:1・キーカラー1本＋意味のあるセマンティックのみ）で品位を出し、装飾を足さない。 */
+  :root{
+    /* brand（プライマリ1本） */
+    --primary:#8a1c3d; --primary-hover:#701630; --primary-active:#561023;
+    --primary-weak:#f6e9ee; --primary-weak-bd:#e7cdd6;
+    /* ink / neutral（白背景でコントラスト確保） */
+    --ink:#1a1c1f; --ink-2:#3f444b; --muted:#5a616a;
+    --line:#d7dbe0; --line-2:#c4c9d0;
+    --bg:#f4f5f7; --surface:#ffffff; --surface-2:#eef1f4;
+    /* semantic（意味のある所のみ） */
+    --green:#1f7a40; --green-bg:#e7f4ec;
+    --red:#b42318;   --red-bg:#fbe9e7;
+    --info:#2b5f86;  --info-bg:#e8eff5;
+    --amber:#8a5a00; --amber-bg:#fbf1da;
+    --radius:8px;
+    --mono:"Noto Sans Mono","SF Mono",ui-monospace,Menlo,Consolas,monospace;
+    --sans:"Noto Sans JP",-apple-system,"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic",sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--sans);background:var(--bg);color:var(--ink);
+    font-size:16px;line-height:1.7;-webkit-font-smoothing:antialiased}
+  :focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+  code{font-family:var(--mono);font-size:14px;background:var(--surface-2);
+    border:1px solid var(--line);border-radius:4px;padding:1px 6px}
+  .app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+
+  /* ---------- sidebar ---------- */
+  aside{background:var(--surface);border-right:1px solid var(--line);padding:24px 16px;position:sticky;top:0;height:100vh}
+  .brand{display:flex;align-items:center;gap:12px;padding:0 8px 20px;border-bottom:1px solid var(--line)}
+  .brand .mark{width:32px;height:32px;flex:none}
+  .brand .btxt{font-weight:700;font-size:16px;line-height:1.4}
+  .brand .btxt small{display:block;color:var(--muted);font-weight:400;font-size:12px}
+  nav{margin-top:8px;display:flex;flex-direction:column;gap:2px}
+  .nav-group{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.04em;margin:20px 12px 8px}
+  nav button{all:unset;box-sizing:border-box;cursor:pointer;width:100%;padding:10px 12px;border-radius:8px;
+    color:var(--ink-2);display:flex;gap:12px;align-items:center;font-size:15px;font-weight:500}
+  nav button svg{width:20px;height:20px;flex:none;color:var(--muted)}
+  nav button:hover{background:var(--surface-2)}
+  nav button.on{background:var(--primary-weak);color:var(--primary);font-weight:700}
+  nav button.on svg{color:var(--primary)}
+  nav button:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+  .side-foot{position:absolute;bottom:20px;left:16px;right:16px}
+  .side-foot .note{font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.6}
+
+  /* ---------- main ---------- */
+  main{padding:40px 40px 64px}
+  .page-head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:8px}
+  h1{font-size:28px;font-weight:700;margin:0 0 8px;line-height:1.4}
+  h1 .htag{font-size:14px;color:var(--muted);font-weight:400;margin-left:8px}
+  .sub{color:var(--ink-2);font-size:15px;margin:0 0 24px;max-width:880px}
+
+  /* ---------- kpi ---------- */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 20px}
+  .kpi .k{color:var(--muted);font-size:13px}
+  .kpi .v{font-size:26px;font-weight:700;margin-top:4px;color:var(--ink);line-height:1.3}
+  .kpi.accent .v{color:var(--primary)}
+  .kpi .v small{font-size:14px;color:var(--muted);font-weight:400}
+
+  /* ---------- card ---------- */
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:24px;margin-bottom:24px}
+  .card h2{font-size:18px;margin:0 0 16px;display:flex;align-items:center;gap:8px;color:var(--ink);font-weight:700}
+  .card h2 .tag{font-size:12px;font-weight:500;color:var(--muted);border:1px solid var(--line-2);padding:2px 8px;border-radius:4px}
+
+  /* ---------- table（Dense） ---------- */
+  table{width:100%;border-collapse:collapse;font-size:14px;line-height:1.5}
+  th{background:var(--surface-2);color:var(--ink-2);font-weight:700;font-size:13px;text-align:left;
+    padding:10px 12px;border-bottom:1px solid var(--line-2);position:sticky;top:0;white-space:nowrap}
+  td{padding:12px;border-bottom:1px solid var(--line);vertical-align:top}
+  tbody tr:hover{background:#faf8f9}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .pill{display:inline-block;padding:2px 10px;border-radius:6px;font-size:13px;font-weight:700}
+  .pill.RECEIVE{background:var(--green-bg);color:var(--green)}
+  .pill.SELL{background:var(--red-bg);color:var(--red)}
+  .pill.TRANSFER{background:var(--info-bg);color:var(--info)}
+  .pill.ADJUST{background:var(--amber-bg);color:var(--amber)}
+  .chip{display:inline-block;padding:1px 8px;border-radius:4px;font-size:12px;
+    background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line)}
+  .swatch{display:inline-block;width:11px;height:11px;border-radius:50%;border:1px solid rgba(0,0,0,.18);margin-right:7px;vertical-align:-1px}
+  .taste-cell{font-size:13px;color:var(--ink-2);min-width:170px;line-height:1.5}
+  .taste-cell a{color:var(--primary);text-decoration:underline;font-size:12px}
+  /* 棚マップ */
+  .shelf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:16px}
+  .shelf{border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:var(--surface-2)}
+  .shelf-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .shelf-code{font-weight:700;font-size:14px;background:var(--ink);color:#fff;padding:2px 10px;border-radius:6px}
+  .shelf-total{font-size:13px;color:var(--muted)}
+  .shelf-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line);font-size:13px}
+  .shelf-item .shelf-name{flex:1;line-height:1.4}
+  .shelf-item b{font-variant-numeric:tabular-nums}
+
+  /* ---------- form ---------- */
+  .grid{display:grid;gap:16px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr 1fr}
+  label.f{display:block;font-size:14px;color:var(--ink-2);margin-bottom:8px;font-weight:700}
+  input,select{width:100%;background:#fff;border:1px solid var(--line-2);color:var(--ink);
+    padding:12px;border-radius:6px;font-size:15px;font-family:inherit;min-height:48px}
+  input:focus,select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-weak)}
+  input:disabled{background:var(--surface-2);color:var(--ink-2);-webkit-text-fill-color:var(--ink-2)}
+  .field-help{font-size:13px;color:var(--muted);margin-top:6px}
+
+  /* ---------- buttons（Primary/Secondary/Tertiary） ---------- */
+  .btn{all:unset;box-sizing:border-box;cursor:pointer;background:var(--primary);color:#fff;
+    padding:12px 24px;border-radius:6px;font-size:15px;font-weight:700;text-align:center;
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;border:1px solid var(--primary)}
+  .btn:hover{background:var(--primary-hover);border-color:var(--primary-hover)}
+  .btn:active{background:var(--primary-active);border-color:var(--primary-active)}
+  .btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+  .btn.secondary{background:#fff;color:var(--primary);border-color:var(--primary)}
+  .btn.secondary:hover{background:var(--primary-weak)}
+  .btn.ghost{background:transparent;color:var(--muted);border-color:var(--line-2);font-weight:500;min-height:40px;padding:8px 16px;font-size:14px}
+  .btn.ghost:hover{background:var(--surface-2);color:var(--ink-2)}
+  .row-actions{display:flex;gap:16px;margin-top:24px;align-items:center}
+  .hint{font-size:14px;color:var(--muted)}
+
+  /* ---------- info blocks（装飾なし・意味のある左罫のみ） ---------- */
+  .banner{background:var(--surface-2);border:1px solid var(--line);
+    border-radius:8px;padding:16px;font-size:14px;color:var(--ink-2);margin-bottom:24px;line-height:1.8}
+  .banner b{color:var(--ink)}
+  .ai-box{background:var(--surface-2);border:1px solid var(--line);border-radius:8px;
+    padding:16px;margin-bottom:16px;font-size:14px;color:var(--ink-2);line-height:1.9}
+  .ai-box .ai-label{display:inline-block;font-size:12px;font-weight:700;color:#fff;background:var(--ink-2);
+    padding:1px 8px;border-radius:4px;margin-bottom:8px}
+  .ai-box b{color:var(--ink)}
+  .conf{font-size:13px;font-weight:700}
+  .conf.hi{color:var(--green)}.conf.lo{color:var(--amber)}
+  .flow{font-size:14px;color:var(--muted);margin-top:12px;line-height:1.8}
+
+  /* ---------- segmented control / misc ---------- */
+  .store-tabs{display:inline-flex;border:1px solid var(--line-2);border-radius:8px;overflow:hidden;margin-bottom:16px}
+  .store-tabs button{all:unset;cursor:pointer;padding:8px 16px;font-size:14px;font-weight:600;
+    color:var(--ink-2);background:#fff;border-right:1px solid var(--line-2)}
+  .store-tabs button:last-child{border-right:none}
+  .store-tabs button:hover{background:var(--surface-2)}
+  .store-tabs button.on{background:var(--primary);color:#fff}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:14px;color:var(--ink-2);margin-top:16px}
+  .empty{color:var(--muted);text-align:center;padding:32px;font-size:15px}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--primary);
+    color:#fff;padding:12px 24px;border-radius:8px;font-size:15px;font-weight:700;
+    box-shadow:0 6px 20px rgba(16,24,40,.18);opacity:0;transition:.2s;pointer-events:none;z-index:50}
+  .toast.show{opacity:1;bottom:32px}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M24 42C24 42 6 30 6 17.5C6 11 11 6.5 16.5 6.5C20 6.5 23 8.5 24 11C25 8.5 28 6.5 31.5 6.5C37 6.5 42 11 42 17.5C42 30 24 42 24 42Z" fill="#8a1c3d"/>
+      </svg>
+      <div class="btxt">ワイン在庫管理<small>hakubi ・ デモ表示中</small></div>
+    </div>
+    <nav id="nav">
+      <div class="nav-group">管理</div>
+      <button data-v="stock" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>在庫一覧</button>
+      <button data-v="map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg>棚マップ</button>
+      <button data-v="receive"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v10m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>入庫（検品）</button>
+      <button data-v="sell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V11m0 0l-4 4m4-4l4 4M4 7V5a2 2 0 012-2h12a2 2 0 012 2v2"/></svg>出庫（販売）</button>
+      <button data-v="transfer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h11l-3-3m3 3l-3 3M17 17H6l3-3m-3 3l3 3"/></svg>店舗間移動</button>
+      <button data-v="adjust"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5h6M9 5a1 1 0 00-1 1v0H6a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1V7a1 1 0 00-1-1h-2v0a1 1 0 00-1-1M9 14l2 2 4-4"/></svg>棚卸し</button>
+      <div class="nav-group">記録・監査</div>
+      <button data-v="ledger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12a1 1 0 011 1v14a1 1 0 01-1 1H7a1 1 0 01-1-1V4zM9 8h6M9 12h6M9 16h3"/></svg>イベント台帳</button>
+    </nav>
+    <div class="side-foot">
+      <div class="note">合成データのデモです。実在庫ではありません。状態はブラウザに保存されます。</div>
+      <button class="btn ghost" style="width:100%" onclick="resetAll()">データを初期化</button>
+    </div>
+  </aside>
+
+  <main id="main"></main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   PoC: イベントソーシング型 在庫台帳
+   設計書 03_データモデル に準拠（合成データ）
+   - 在庫は保存せず inventory_events の合計で算出
+   - 台帳は追記専用（UPDATE/DELETE なし。訂正は逆/ADJUSTイベント）
+   ============================================================ */
+
+const COLOR = {1:"Champagne",2:"Champagne Rosé",3:"Sparkling",4:"Cidre",5:"White",6:"Orange",7:"Rosé",8:"Red",9:"Sweet"};
+const COUNTRY = {1:"France",2:"Italy",3:"Spain",4:"Germany",5:"Other EU",6:"U.S.A",7:"New World",8:"Japan",9:"Others"};
+// 色区分の視認用スウォッチ（リストルール9区分）。色だけに頼らずラベルも併記する
+const COLOR_SWATCH = {1:"#e3c873",2:"#e7b6c4",3:"#e3c873",4:"#cfe0bf",5:"#ece1a8",6:"#dd9a52",7:"#e7b6c4",8:"#7b1f2b",9:"#cfa53f"};
+
+const SEED = {
+  stores:[
+    {id:"st_haku", name:"hakubi", short:"白美"},
+    {id:"st_arti", name:"Artisan", short:"アル"},
+  ],
+  shelves:[
+    {id:"sh_f4", store_id:"st_haku", code:"F4"},
+    {id:"sh_a78", store_id:"st_haku", code:"A78"},
+    {id:"sh_b2", store_id:"st_haku", code:"B2"},
+    {id:"sh_ar1", store_id:"st_arti", code:"R1"},
+  ],
+  wines:[
+    {id:"w01", name:"Chambolle-Musigny 1er Cru Les Amoureuses", producer:"Roumier", vintage:2018, color:8, country:1, region:"1104 Chambolle Musigny", cost:48000, sell:158000, taste:"華やかな赤果実と絹の単寧"},
+    {id:"w02", name:"Bâtard-Montrachet Grand Cru", producer:"Leflaive", vintage:2019, color:5, country:1, region:"1108 Puligny", cost:62000, sell:198000, taste:"蜂蜜とナッツ、豊潤な樽香"},
+    {id:"w03", name:"Barolo Brunate", producer:"Giuseppe Rinaldi", vintage:2017, color:8, country:2, region:"2101 Piemonte", cost:22000, sell:78000, taste:"薔薇とタール、力強い酸"},
+    {id:"w04", name:"Champagne Grand Cru Blanc de Blancs", producer:"Pierre Péters", vintage:null, color:1, country:1, region:"1201 Champagne", cost:9800, sell:32000, taste:"柑橘と白い花、繊細な泡"},
+    {id:"w05", name:"Riesling Clos Sainte Hune", producer:"Trimbach", vintage:2016, color:5, country:1, region:"1301 Alsace", cost:18000, sell:62000, taste:"ライムと火打石、張る酸"},
+    {id:"w06", name:"Brunello di Montalcino", producer:"Soldera", vintage:2015, color:8, country:2, region:"2201 Toscana", cost:88000, sell:280000, taste:"ドライフラワーと凝縮果実"},
+    {id:"w07", name:"Coteaux Champenois Rouge", producer:"Bdx", vintage:2020, color:8, country:1, region:"1201 Champagne", cost:12000, sell:39000, taste:"軽やかな赤果実と塩味"},
+    {id:"w08", name:"Sancerre Blanc", producer:"Vacheron", vintage:2021, color:5, country:1, region:"1401 Loire", cost:5200, sell:17000, taste:"グレープフルーツと青い草"},
+    {id:"w09", name:"Tokaji Aszú 5 Puttonyos", producer:"Royal Tokaji", vintage:2013, color:9, country:5, region:"5101 Tokaj", cost:8800, sell:28000, taste:"杏と蜂蜜の甘美な余韻"},
+    {id:"w10", name:"Napa Cabernet Sauvignon", producer:"Ridge", vintage:2018, color:8, country:6, region:"6101 Napa", cost:14000, sell:46000, taste:"カシスと杉、豊かな果実"},
+    {id:"w11", name:"Koshu Sur Lie", producer:"Grace", vintage:2022, color:5, country:8, region:"8101 Yamanashi", cost:2400, sell:8800, taste:"和柑橘と旨味、繊細な辛口"},
+    {id:"w12", name:"Champagne Rosé Brut", producer:"Egly-Ouriet", vintage:null, color:2, country:1, region:"1201 Champagne", cost:16000, sell:52000, taste:"赤い果実と芳ばしい厚み"},
+  ],
+  // 初期残高は ADJUST（棚卸し起点）で投入＝設計書 §7-3
+  events:null
+};
+
+function seedEvents(){
+  // [wine, store, shelf, qty]
+  const init = [
+    ["w01","st_haku","sh_f4",3],["w02","st_haku","sh_f4",2],["w03","st_haku","sh_b2",6],
+    ["w04","st_haku","sh_a78",12],["w05","st_haku","sh_b2",4],["w06","st_haku","sh_f4",1],
+    ["w08","st_haku","sh_b2",18],["w09","st_haku","sh_a78",5],["w10","st_haku","sh_b2",7],
+    ["w11","st_haku","sh_b2",24],["w12","st_haku","sh_a78",9],
+    ["w03","st_arti","sh_ar1",4],["w08","st_arti","sh_ar1",10],["w07","st_arti","sh_ar1",6],
+  ];
+  let t = Date.parse("2026-06-01T09:00:00");
+  const costOf=id=>SEED.wines.find(w=>w.id===id).cost; // DB未確定でも引けるようSEEDから
+  return init.map((r,i)=>({
+    id:"ev_seed_"+i, type:"ADJUST", wine_id:r[0], store_id:r[1], shelf_id:r[2],
+    qty_delta:r[3], unit_cost:costOf(r[0]), source:"MANUAL",
+    occurred_at:new Date(t+i*60000).toISOString(), operator:"移行", note:"初期残高（棚卸し起点）", transfer_id:null
+  }));
+}
+
+/* ---------- state ---------- */
+// マスタ(wines/stores/shelves)は常にSEEDから読み込み、永続化するのは events のみ。
+// → 銘柄に項目を足してもブラウザ保存に阻まれず必ず反映される（スキーマ追加の取りこぼし防止）。
+let DB, VIEW="stock", stockStoreFilter="all";
+const LS_KEY="wine_poc_events";
+function load(){
+  let events=null;
+  const raw = localStorage.getItem(LS_KEY);
+  if(raw){ try{ events = JSON.parse(raw); }catch(e){} }
+  DB = {stores:SEED.stores, shelves:SEED.shelves, wines:SEED.wines, events: events || seedEvents()};
+  localStorage.removeItem("wine_poc_v1"); // 旧方式（フルDB保存）のキャッシュを破棄
+  save();
+}
+function save(){ localStorage.setItem(LS_KEY, JSON.stringify(DB.events)); }
+function resetAll(){ if(confirm("デモデータを初期状態に戻します。よろしいですか？")){ localStorage.removeItem(LS_KEY); load(); render(); toast("初期化しました"); } }
+
+/* ---------- helpers ---------- */
+const wineById=id=>DB.wines.find(w=>w.id===id);
+const storeById=id=>DB.stores.find(s=>s.id===id);
+const shelfById=id=>DB.shelves.find(s=>s.id===id);
+const shelvesOf=sid=>DB.shelves.filter(s=>s.store_id===sid);
+const yen=n=>"¥"+Math.round(n).toLocaleString("ja-JP");
+const wineName=w=>`${w.name}${w.vintage?` ${w.vintage}`:" NV"}`;
+function nextId(p){ return p+"_"+(DB.events.length)+"_"+(DB.events.filter(e=>e.id.startsWith(p)).length); }
+
+// ★ 核：現在在庫 = Σ qty_delta（保存しない・都度算出）
+function currentStock(){
+  const map={};
+  for(const e of DB.events){
+    const k=e.wine_id+"|"+e.store_id+"|"+(e.shelf_id||"-");
+    if(!map[k]) map[k]={wine_id:e.wine_id, store_id:e.store_id, shelf_id:e.shelf_id, qty:0};
+    map[k].qty+=e.qty_delta;
+  }
+  return Object.values(map).filter(r=>r.qty!==0);
+}
+function stockOf(wine_id, store_id){
+  return DB.events.filter(e=>e.wine_id===wine_id && e.store_id===store_id).reduce((a,e)=>a+e.qty_delta,0);
+}
+
+function append(ev){ DB.events.push(ev); save(); }
+
+/* ---------- KPI ---------- */
+function kpis(){
+  const cs=currentStock();
+  const bottles=cs.reduce((a,r)=>a+r.qty,0);
+  const skus=new Set(cs.map(r=>r.wine_id)).size;
+  const value=cs.reduce((a,r)=>a+r.qty*wineById(r.wine_id).cost,0);
+  const byStore=DB.stores.map(s=>({name:s.short, n:cs.filter(r=>r.store_id===s.id).reduce((a,r)=>a+r.qty,0)}));
+  return {bottles,skus,value,byStore};
+}
+
+/* ============================================================ VIEWS ============================================================ */
+function viewStock(){
+  let cs=currentStock();
+  if(stockStoreFilter!=="all") cs=cs.filter(r=>r.store_id===stockStoreFilter);
+  cs.sort((a,b)=> wineById(a.wine_id).name.localeCompare(wineById(b.wine_id).name));
+  const tabs=`<div class="store-tabs">
+    <button class="${stockStoreFilter==='all'?'on':''}" onclick="stockStoreFilter='all';render()">全店</button>
+    ${DB.stores.map(s=>`<button class="${stockStoreFilter===s.id?'on':''}" onclick="stockStoreFilter='${s.id}';render()">${s.name}</button>`).join("")}
+  </div>`;
+  const rows=cs.map(r=>{
+    const w=wineById(r.wine_id);
+    const region=(w.region||"").replace(/^\d+\s*/,""); // 地域コードの先頭番号を除いた地名
+    const ratio=w.sell? Math.round(w.cost/w.sell*100) : null; // 原価率＝取得単価÷売価
+    const q=encodeURIComponent(`${w.producer||""} ${w.name} ${w.vintage||""} ワイン 味わい`);
+    return `<tr>
+      <td><b>${w.name}</b></td>
+      <td style="white-space:nowrap"><b>${w.vintage||"NV"}</b></td>
+      <td>${w.producer||"—"}</td>
+      <td style="white-space:nowrap"><span class="swatch" style="background:${COLOR_SWATCH[w.color]||'#ccc'}"></span>${COLOR[w.color]||"—"}</td>
+      <td>${COUNTRY[w.country]||""}${region?`<br><span class="hint">${region}</span>`:""}</td>
+      <td class="taste-cell">${w.taste?`${w.taste}<br><a href="https://www.google.com/search?q=${q}" target="_blank" rel="noopener">詳細</a>`:"—"}</td>
+      <td>${storeById(r.store_id).name}</td>
+      <td><span class="chip">${shelfById(r.shelf_id)?.code||"-"}</span></td>
+      <td class="num"><b>${r.qty}</b></td>
+      <td class="num">${yen(w.cost)}</td>
+      <td class="num">${w.sell?yen(w.sell):"—"}</td>
+      <td class="num">${ratio!=null?ratio+"%":"—"}</td>
+      <td class="num">${yen(r.qty*w.cost)}</td>
+    </tr>`;
+  }).join("");
+  return `
+  <div class="page-head">
+    <div>
+      <h1>在庫一覧 <span class="htag">current_stock ビュー</span></h1>
+    </div>
+    <button class="btn" onclick="go('receive')">入庫を登録</button>
+  </div>
+  <div class="sub">在庫数は保存していません。台帳イベントの合計 <code>Σ qty_delta</code> を都度算出した結果です（在庫&gt;0のみ表示）。</div>
+  ${kpiBar()}
+  <div class="banner">この一覧は <b>入庫・出庫・移動・棚卸し</b> のどの操作をしても <b>即座に</b> 更新されます。手でセルを書き換える運用を廃止し、増減は必ずイベントとして残ります。</div>
+  <div class="card">
+    <h2>現在在庫 <span class="tag">在庫&gt;0</span></h2>
+    ${tabs}
+    ${cs.length? `<div style="overflow-x:auto"><table><thead><tr><th>銘柄</th><th>VTG</th><th>生産者</th><th>色</th><th>産地</th><th>味わい</th><th>店舗</th><th>棚</th><th class="num">在庫</th><th class="num">取得単価</th><th class="num">売価</th><th class="num">原価率</th><th class="num">評価額</th></tr></thead><tbody>${rows}</tbody></table></div>`
+      : `<div class="empty">在庫がありません</div>`}
+  </div>`;
+}
+
+function viewMap(){
+  return `
+  <h1>棚マップ <span class="htag">どのワインがどこにあるか</span></h1>
+  <div class="sub">店舗ごとの棚に何が入っているかを可視化（在庫&gt;0）。棚コードの座標体系が確定（Q-05）すれば、実際の配置図（区画・段）に発展できます。</div>
+  ${kpiBar()}
+  ${DB.stores.map(st=>{
+    const shelves=shelvesOf(st.id);
+    const cs=currentStock();
+    return `<div class="card">
+      <h2>${st.name} <span class="tag">${shelves.length} 棚</span></h2>
+      <div class="shelf-grid">
+        ${shelves.map(sh=>{
+          const items=cs.filter(r=>r.store_id===st.id && r.shelf_id===sh.id)
+            .sort((a,b)=>wineById(a.wine_id).name.localeCompare(wineById(b.wine_id).name));
+          const total=items.reduce((a,r)=>a+r.qty,0);
+          return `<div class="shelf">
+            <div class="shelf-head"><span class="shelf-code">${sh.code}</span><span class="shelf-total">${total} 本</span></div>
+            ${items.length? items.map(r=>{const w=wineById(r.wine_id);
+              return `<div class="shelf-item"><span class="swatch" style="background:${COLOR_SWATCH[w.color]||'#ccc'}"></span><span class="shelf-name">${w.name} <span class="hint">${w.vintage||'NV'}</span></span><b>${r.qty}</b></div>`}).join("")
+              : `<div class="hint" style="padding:6px 0">（空）</div>`}
+          </div>`;
+        }).join("")}
+      </div>
+    </div>`;
+  }).join("")}`;
+}
+
+function kpiBar(){
+  const k=kpis();
+  return `<div class="kpis">
+    <div class="kpi"><div class="k">総在庫</div><div class="v">${k.bottles}<small> 本</small></div></div>
+    <div class="kpi"><div class="k">銘柄数</div><div class="v">${k.skus}<small> SKU</small></div></div>
+    <div class="kpi accent"><div class="k">在庫評価額（取得原価）</div><div class="v">${yen(k.value)}</div></div>
+    <div class="kpi"><div class="k">店舗別</div><div class="v" style="font-size:16px;line-height:1.6">${k.byStore.map(s=>`${s.name} <b>${s.n}</b>`).join("　")}</div></div>
+  </div>`;
+}
+
+function viewReceive(){
+  const wineOpts=DB.wines.map(w=>`<option value="${w.id}">${w.name} ${w.vintage||"NV"} / ${w.producer}</option>`).join("");
+  const storeOpts=DB.stores.map(s=>`<option value="${s.id}">${s.name}</option>`).join("");
+  return `
+  <h1>入庫（検品）</h1>
+  <div class="sub">納品書を取り込み → AIが銘柄を曖昧マッチ → 人は<b>例外だけ</b>確認して確定。確定すると <span class="pill RECEIVE">入庫</span> イベントが台帳に追記されます。</div>
+  ${kpiBar()}
+  <div class="card">
+    <h2>① 納品書の読取結果（AIモック） <span class="tag">FR-02 / FR-03</span></h2>
+    <div class="ai-box">
+      <span class="ai-label">AI読取結果</span><br>
+      納品書 owariya_20260622.pdf を解析しました。<br>
+      「ﾌﾞﾙｺﾞ ｼｬﾝﾎﾞｰﾙ ｱﾑﾙｰｽﾞ 18」→ <b>Chambolle-Musigny 1er Cru Les Amoureuses 2018 / Roumier</b>
+      <span class="conf hi">信頼度 0.96・自動確定可</span><br>
+      「Pierre Peters BdB」→ <b>Champagne Grand Cru Blanc de Blancs NV / Pierre Péters</b>
+      <span class="conf hi">信頼度 0.93・自動確定可</span><br>
+      「新規・読取不能の1行」→ <span class="conf lo">信頼度 0.41・要確認（下で人が確定）</span>
+    </div>
+    <div class="flow">→ 高信頼かつ発注一致は<b>人手ゼロで自動確定</b>。以下フォームは <b>例外（要確認）行の検品</b> を想定したハッピーパスです。</div>
+  </div>
+  <div class="card">
+    <h2>② 検品して入庫を確定</h2>
+    <div class="grid g3">
+      <div><label class="f">銘柄</label><select id="r_wine">${wineOpts}</select></div>
+      <div><label class="f">店舗</label><select id="r_store" onchange="syncShelves('r_store','r_shelf')">${storeOpts}</select></div>
+      <div><label class="f">棚</label><select id="r_shelf"></select></div>
+    </div>
+    <div class="grid g3" style="margin-top:16px">
+      <div><label class="f">本数</label><input id="r_qty" type="number" value="2" min="1"><div class="field-help">例：2（納品された本数）</div></div>
+      <div><label class="f">仕入単価（円）</label><input id="r_cost" type="number" value="48000"><div class="field-help">例：48000（税抜・1本あたり）</div></div>
+      <div><label class="f">取得元</label><select id="r_src"><option value="DELIVERY_NOTE">納品書</option><option value="MANUAL">手入力</option></select></div>
+    </div>
+    <div class="row-actions">
+      <button class="btn" onclick="doReceive()">入庫を確定</button>
+      <span class="hint">確定すると台帳に追記され、在庫一覧に即反映されます。</span>
+    </div>
+  </div>`;
+}
+
+function viewSell(){
+  const cs=currentStock();
+  const opts=cs.map(r=>{const w=wineById(r.wine_id);
+    return `<option value="${r.wine_id}|${r.store_id}|${r.shelf_id}">${w.name} ${w.vintage||"NV"} ＠${storeById(r.store_id).name}/${shelfById(r.shelf_id)?.code} （在庫${r.qty}）</option>`}).join("");
+  return `
+  <h1>出庫（販売）</h1>
+  <div class="sub">販売を <span class="pill SELL">出庫</span> イベントで記録（−N）。本命はPOS自動連携、暫定は開栓時ボトル撮影。<b>フォームを通すので消し忘れが構造的に起きません。</b></div>
+  ${kpiBar()}
+  <div class="card">
+    <h2>販売を記録</h2>
+    <div class="grid g2">
+      <div><label class="f">対象（在庫のある銘柄）</label><select id="s_target">${opts||'<option>在庫なし</option>'}</select></div>
+      <div><label class="f">本数</label><input id="s_qty" type="number" value="1" min="1"><div class="field-help">在庫数を超える本数は記録できません</div></div>
+    </div>
+    <div class="grid g2" style="margin-top:16px">
+      <div><label class="f">取得元</label><select id="s_src"><option value="POS">POS（ポスタス・本命）</option><option value="PHOTO_BOTTLE">開栓ボトル撮影</option><option value="PHOTO_SHELF">棚撮影差分</option></select></div>
+      <div><label class="f">担当</label><input id="s_op" value="ソムリエ田中"></div>
+    </div>
+    <div class="row-actions">
+      <button class="btn" onclick="doSell()">出庫を記録</button>
+      <span class="hint">在庫を超える本数は記録できません（マイナス在庫防止）。</span>
+    </div>
+  </div>`;
+}
+
+function viewTransfer(){
+  const cs=currentStock();
+  const opts=cs.map(r=>{const w=wineById(r.wine_id);
+    return `<option value="${r.wine_id}|${r.store_id}|${r.shelf_id}">${w.name} ${w.vintage||"NV"} ＠${storeById(r.store_id).name}/${shelfById(r.shelf_id)?.code} （在庫${r.qty}）</option>`}).join("");
+  const toStoreOpts=DB.stores.map(s=>`<option value="${s.id}">${s.name}</option>`).join("");
+  return `
+  <h1>店舗間移動 <span class="htag" style="color:var(--primary);font-weight:700">差別化ポイント</span></h1>
+  <div class="sub">A店→B店の移動を <b>−A店 / ＋B店 の対イベント</b>（同一 transfer_id）で記録。<b>片側だけ記録できない＝原価率・店舗PLが狂わない。</b>（汎用POS・既存アプリでは扱いにくい、当社の差別化点）</div>
+  ${kpiBar()}
+  <div class="card">
+    <h2>移動を記録 <span class="tag">TRANSFER ペア</span></h2>
+    <div class="grid g3">
+      <div><label class="f">移動するボトル（移動元）</label><select id="t_target">${opts||'<option>在庫なし</option>'}</select></div>
+      <div><label class="f">移動先 店舗</label><select id="t_to" onchange="syncShelves('t_to','t_shelf')">${toStoreOpts}</select></div>
+      <div><label class="f">移動先 棚</label><select id="t_shelf"></select></div>
+    </div>
+    <div class="grid g3" style="margin-top:16px">
+      <div><label class="f">本数</label><input id="t_qty" type="number" value="1" min="1"></div>
+    </div>
+    <div class="row-actions">
+      <button class="btn" onclick="doTransfer()">移動を記録（−A / +B）</button>
+      <span class="hint">2件の対イベントが同時に台帳へ。全社合計は±0、店舗別では原価が移動します。</span>
+    </div>
+  </div>`;
+}
+
+function viewAdjust(){
+  const cs=currentStock();
+  const opts=cs.map(r=>{const w=wineById(r.wine_id);
+    return `<option value="${r.wine_id}|${r.store_id}|${r.shelf_id}" data-sys="${r.qty}">${w.name} ${w.vintage||"NV"} ＠${storeById(r.store_id).name}/${shelfById(r.shelf_id)?.code} （システム在庫${r.qty}）</option>`}).join("");
+  return `
+  <h1>棚卸し（差分の表面化）</h1>
+  <div class="sub">実数を入力すると <b>システム在庫との差分</b> を <span class="pill ADJUST">調整</span> で補正。差分が出る＝どこかにイベント漏れがあった証拠で、<b>サイレントな在庫破壊が起きません。</b></div>
+  ${kpiBar()}
+  <div class="card">
+    <h2>実数カウントを入力</h2>
+    <div class="grid g3">
+      <div><label class="f">対象</label><select id="a_target" onchange="syncAdjust()">${opts||'<option>在庫なし</option>'}</select></div>
+      <div><label class="f">システム在庫</label><input id="a_sys" disabled><div class="field-help">台帳から自動計算（編集不可）</div></div>
+      <div><label class="f">実数（数えた本数）</label><input id="a_actual" type="number" value="0" oninput="syncAdjustDiff()"><div class="field-help">実際に数えた本数を入力</div></div>
+    </div>
+    <div id="a_diff" class="flow"></div>
+    <div class="row-actions">
+      <button class="btn" onclick="doAdjust()">差分を記録（調整）</button>
+      <span class="hint">差分ゼロなら記録不要。差分は「なぜズレたか」を後から追えます。</span>
+    </div>
+  </div>`;
+}
+
+function viewLedger(){
+  const evs=[...DB.events].reverse();
+  const rows=evs.map(e=>{
+    const w=wineById(e.wine_id);
+    const sign=e.qty_delta>0?`+${e.qty_delta}`:`${e.qty_delta}`;
+    return `<tr>
+      <td class="hint" style="white-space:nowrap">${fmtTime(e.occurred_at)}</td>
+      <td><span class="pill ${e.type}">${typeLabel(e.type)}</span></td>
+      <td>${w.name} <span class="chip">${w.vintage||"NV"}</span></td>
+      <td>${storeById(e.store_id).name}/${shelfById(e.shelf_id)?.code||"-"}</td>
+      <td class="num" style="color:${e.qty_delta>0?'var(--green)':'var(--red)'};font-weight:700">${sign}</td>
+      <td><span class="chip">${srcLabel(e.source)}</span></td>
+      <td class="hint">${e.note||""}${e.transfer_id?` <span class="chip">対:${e.transfer_id.slice(-4)}</span>`:""}</td>
+    </tr>`;
+  }).join("");
+  return `
+  <h1>イベント台帳 <span class="htag">inventory_events（追記専用）</span></h1>
+  <div class="sub">全ての在庫増減が1行＝1イベントで残ります。<b>編集・削除はできません</b>（訂正は逆イベント / 調整）。在庫がいつ・なぜ・誰の操作で動いたか全て遡れます＝監査性。</div>
+  ${kpiBar()}
+  <div class="card">
+    <h2>台帳（新しい順） <span class="tag">${DB.events.length} 件</span></h2>
+    <table><thead><tr><th>日時</th><th>種別</th><th>銘柄</th><th>店舗/棚</th><th class="num">増減</th><th>取得元</th><th>備考</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    <div class="legend">
+      <span><span class="pill RECEIVE">入庫</span> +N 仕入</span>
+      <span><span class="pill SELL">出庫</span> −N 販売</span>
+      <span><span class="pill TRANSFER">移動</span> −A/+B 対</span>
+      <span><span class="pill ADJUST">調整</span> ± 棚卸差分</span>
+    </div>
+  </div>`;
+}
+
+/* ---------- labels ---------- */
+const typeLabel=t=>({RECEIVE:"入庫",SELL:"出庫",TRANSFER:"移動",ADJUST:"調整"})[t]||t;
+const srcLabel=s=>({DELIVERY_NOTE:"納品書",PHOTO_BOTTLE:"ボトル撮影",PHOTO_SHELF:"棚撮影",POS:"POS",MANUAL:"手入力"})[s]||s;
+function fmtTime(iso){const d=new Date(iso);const p=n=>String(n).padStart(2,"0");return `${d.getMonth()+1}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;}
+
+/* ---------- actions ---------- */
+function syncShelves(storeSel, shelfSel){
+  const sid=document.getElementById(storeSel).value;
+  document.getElementById(shelfSel).innerHTML=shelvesOf(sid).map(s=>`<option value="${s.id}">${s.code}</option>`).join("");
+}
+function syncAdjust(){
+  const sel=document.getElementById("a_target");
+  const sys=sel.selectedOptions[0]?.dataset.sys||0;
+  document.getElementById("a_sys").value=sys;
+  document.getElementById("a_actual").value=sys;
+  syncAdjustDiff();
+}
+function syncAdjustDiff(){
+  const sys=+document.getElementById("a_sys").value;
+  const act=+document.getElementById("a_actual").value;
+  const d=act-sys;
+  const el=document.getElementById("a_diff");
+  if(d===0) el.innerHTML=`差分なし（システムと一致）。記録の必要はありません。`;
+  else el.innerHTML=`差分 <code style="color:${d<0?'var(--red)':'var(--green)'}">${d>0?'+':''}${d}</code> 本 → <b>調整(${d>0?'+':''}${d})</b> を記録します。${d<0?'（システムが多い＝出庫の記録漏れの可能性）':'（実数が多い＝入庫の記録漏れの可能性）'}`;
+}
+
+function doReceive(){
+  const wid=val("r_wine"), sid=val("r_store"), shid=val("r_shelf");
+  const qty=+val("r_qty"), cost=+val("r_cost");
+  if(qty<1) return toast("本数を確認してください");
+  append({id:nextId("ev"),type:"RECEIVE",wine_id:wid,store_id:sid,shelf_id:shid,
+    qty_delta:qty,unit_cost:cost,source:val("r_src"),occurred_at:new Date().toISOString(),
+    operator:"検品担当",note:"検品確定",transfer_id:null});
+  toast(`入庫 +${qty} を台帳に追記しました`);
+  go("stock");
+}
+function doSell(){
+  const [wid,sid,shid]=val("s_target").split("|");
+  const qty=+val("s_qty");
+  const cur=stockOf(wid,sid);
+  if(qty<1) return toast("本数を確認してください");
+  if(qty>cur) return toast(`在庫(${cur})を超えています`);
+  append({id:nextId("ev"),type:"SELL",wine_id:wid,store_id:sid,shelf_id:shid,
+    qty_delta:-qty,unit_cost:null,source:val("s_src"),occurred_at:new Date().toISOString(),
+    operator:val("s_op"),note:"販売",transfer_id:null});
+  toast(`出庫 −${qty} を記録しました`);
+  go("stock");
+}
+function doTransfer(){
+  const [wid,fromSid,fromShid]=val("t_target").split("|");
+  const toSid=val("t_to"), toShid=val("t_shelf"), qty=+val("t_qty");
+  const cur=stockOf(wid,fromSid);
+  if(qty<1) return toast("本数を確認してください");
+  if(toSid===fromSid) return toast("移動元と移動先が同じ店舗です");
+  if(qty>cur) return toast(`在庫(${cur})を超えています`);
+  const tid="tr_"+DB.events.length;
+  const now=new Date().toISOString();
+  const w=wineById(wid);
+  append({id:nextId("ev"),type:"TRANSFER",wine_id:wid,store_id:fromSid,shelf_id:fromShid,
+    qty_delta:-qty,unit_cost:w.cost,source:"MANUAL",occurred_at:now,operator:"店長",note:`${storeById(toSid).name}へ移動`,transfer_id:tid});
+  append({id:nextId("ev"),type:"TRANSFER",wine_id:wid,store_id:toSid,shelf_id:toShid,
+    qty_delta:qty,unit_cost:w.cost,source:"MANUAL",occurred_at:now,operator:"店長",note:`${storeById(fromSid).name}から移動`,transfer_id:tid});
+  toast(`移動を記録：−${qty}@${storeById(fromSid).short} / +${qty}@${storeById(toSid).short}`);
+  go("ledger");
+}
+function doAdjust(){
+  const sel=document.getElementById("a_target");
+  const [wid,sid,shid]=sel.value.split("|");
+  const sys=+val("a_sys"), act=+val("a_actual");
+  const d=act-sys;
+  if(d===0) return toast("差分がありません");
+  append({id:nextId("ev"),type:"ADJUST",wine_id:wid,store_id:sid,shelf_id:shid,
+    qty_delta:d,unit_cost:wineById(wid).cost,source:"MANUAL",occurred_at:new Date().toISOString(),
+    operator:"棚卸担当",note:`棚卸差分 ${d>0?'+':''}${d}`,transfer_id:null});
+  toast(`調整(${d>0?'+':''}${d}) を記録しました`);
+  go("stock");
+}
+
+/* ---------- plumbing ---------- */
+const val=id=>document.getElementById(id).value;
+let toastT;
+function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),2200);}
+function go(v){ VIEW=v; render(); }
+function render(){
+  document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===VIEW));
+  const m=document.getElementById("main");
+  m.innerHTML=({stock:viewStock,map:viewMap,receive:viewReceive,sell:viewSell,transfer:viewTransfer,adjust:viewAdjust,ledger:viewLedger})[VIEW]();
+  // post-render syncs
+  if(VIEW==="receive"){syncShelves("r_store","r_shelf");}
+  if(VIEW==="transfer"){syncShelves("t_to","t_shelf");}
+  if(VIEW==="adjust"){syncAdjust();}
+}
+document.getElementById("nav").addEventListener("click",e=>{const b=e.target.closest("button");if(b)go(b.dataset.v);});
+load(); render();
+</script>
+</body>
+</html>
