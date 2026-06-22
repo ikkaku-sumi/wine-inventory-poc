@@ -98,6 +98,7 @@
       <a href="#howto">使い方</a>
       <a href="#mockups">画面イメージ</a>
       <a href="#flow">ユーザーフロー</a>
+      <a href="#questions">確認事項</a>
       <span class="sep"></span>
       <a href="#arch">構成</a>
       <a href="#lineworks">LINE WORKS</a>
@@ -190,6 +191,27 @@ timeline
     本部経理 : 原価率や在庫評価と店舗PLを確認
     </pre>
     <p class="note">入出庫が正確に積み上がるほど、棚卸しは月1→四半期へ激減。出庫はポスタス連携で“手間ゼロ”が本命。</p>
+  </section>
+
+  <section id="questions">
+    <h2>ご相談・確認事項（運用を詰めるために）</h2>
+    <p>設計を確定するため、以下を伺えると助かります。<b>分かる範囲で大丈夫です</b>（「将来のため」の項目は今すぐでなくても問題ありません）。詳細版は別紙「確認事項書」にまとめています。</p>
+    <table class="data">
+      <tr><th>分類</th><th>確認したいこと</th><th>優先度</th></tr>
+      <tr><td>店舗・棚</td><td>在庫を管理する店舗の正式名と略称（最初は1店舗から）</td><td><span class="pill">v1必須</span></td></tr>
+      <tr><td>店舗・棚</td><td>棚番号（F4・A78 等）の付け方ルールと配置図（在庫マップ表示用）</td><td><span class="pill f">中</span></td></tr>
+      <tr><td>店舗・棚</td><td><b>QRで1本ずつ管理（個体認証）する案の是非</b>と、<b>高級ボトルへのシール/タグ貼付の可否</b>（→「捕捉方針」と連動）</td><td><span class="pill">相談</span></td></tr>
+      <tr><td>仕入・納品</td><td>納品書を<b>データ（CSV/PDF）で貰える仕入先</b>と<b>紙のみの仕入先</b>はどこか</td><td><span class="pill">v1必須</span></td></tr>
+      <tr><td>仕入・納品</td><td>主要仕入先の確認、および「発注→納品→検品→棚入れ」の現状フロー</td><td><span class="pill f">中</span></td></tr>
+      <tr><td>販売・出庫</td><td>ワインが売れたときの<b>現状の記録方法</b>（今どう消し込んでいるか）</td><td><span class="pill">v1必須</span></td></tr>
+      <tr><td>販売・出庫</td><td><b>メインPOS（ポスタス）のAPI/CSVにアクセスできるか</b>、売上が<b>「どの銘柄・VTGか」まで分かるか</b></td><td><span class="pill">最重要</span></td></tr>
+      <tr><td>販売・出庫</td><td>終業時の棚撮影で“その日の販売”を割り出す運用は、現場で回せそうか</td><td><span class="pill f">中</span></td></tr>
+      <tr><td>体制・連携</td><td><b>LINE WORKS の Bot/API 利用許可</b>を情シス/管理者から取得できそうか（申請窓口）</td><td><span class="pill">v1必須</span></td></tr>
+      <tr><td>体制・連携</td><td>検品・棚卸し・売価決定は<b>誰（どの役割）</b>が担当するか／権限を分ける範囲</td><td><span class="pill">v1必須</span></td></tr>
+      <tr><td>将来</td><td>お客様の好み（過去に飲んだワイン）の記録場所（ソムリエAI用・所在確認のみ）</td><td><span class="pill f">将来</span></td></tr>
+      <tr><td>将来</td><td>月次の原価率・在庫評価の確定ルール／会計（マネーフォワード等）連携の要否</td><td><span class="pill f">将来</span></td></tr>
+    </table>
+    <p class="note">「分からない／決まっていない」も立派な回答です（その項目はこちらで仮置きして進めます）。優先度「v1必須・最重要」が、最初の検証（hakubi 単店）に直接効きます。</p>
   </section>
 
   <div class="divider"><b>ここから先は技術者向け（委託エンジニア用）</b></div>
