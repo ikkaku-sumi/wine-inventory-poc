@@ -88,6 +88,12 @@
   .chip{display:inline-block;padding:1px 8px;border-radius:4px;font-size:12px;
     background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line)}
   .swatch{display:inline-block;width:11px;height:11px;border-radius:50%;border:1px solid rgba(0,0,0,.18);margin-right:7px;vertical-align:-1px}
+  /* 残りわずかアラート（高額ボトルの在庫1〜2本を視覚的に強調） */
+  .lowstock{display:inline-block;margin-top:4px;font-size:11px;font-weight:700;padding:1px 7px;border-radius:4px;white-space:nowrap}
+  .lowstock.warn{background:var(--amber-bg);color:var(--amber)}
+  .lowstock.crit{background:var(--red-bg);color:var(--red)}
+  tr.low td{background:#fffaf0}
+  tr.crit td{background:var(--red-bg)}
   .taste-cell{font-size:13px;color:var(--ink-2);min-width:170px;line-height:1.5}
   .taste-cell a{color:var(--primary);text-decoration:underline;font-size:12px}
   /* 棚マップ */
@@ -197,6 +203,8 @@ const COLOR = {1:"Champagne",2:"Champagne Rosé",3:"Sparkling",4:"Cidre",5:"Whit
 const COUNTRY = {1:"France",2:"Italy",3:"Spain",4:"Germany",5:"Other EU",6:"U.S.A",7:"New World",8:"Japan",9:"Others"};
 // 色区分の視認用スウォッチ（リストルール9区分）。色だけに頼らずラベルも併記する
 const COLOR_SWATCH = {1:"#e3c873",2:"#e7b6c4",3:"#e3c873",4:"#cfe0bf",5:"#ece1a8",6:"#dd9a52",7:"#e7b6c4",8:"#7b1f2b",9:"#cfa53f"};
+// 仕入れ元（インポーター／業者）のマスタ。入庫フォームの選択肢に使用（合成データ）
+const SUPPLIERS = ["エノテカ","ラック・コーポレーション","フィネス","日本リカー","テラヴェール","ヴィントナーズ","中川ワイン","蔵元直送"];
 
 const SEED = {
   stores:[
@@ -210,18 +218,18 @@ const SEED = {
     {id:"sh_ar1", store_id:"st_arti", code:"R1"},
   ],
   wines:[
-    {id:"w01", name:"Chambolle-Musigny 1er Cru Les Amoureuses", producer:"Roumier", vintage:2018, color:8, country:1, region:"1104 Chambolle Musigny", cost:48000, sell:158000, taste:"華やかな赤果実と絹の単寧"},
-    {id:"w02", name:"Bâtard-Montrachet Grand Cru", producer:"Leflaive", vintage:2019, color:5, country:1, region:"1108 Puligny", cost:62000, sell:198000, taste:"蜂蜜とナッツ、豊潤な樽香"},
-    {id:"w03", name:"Barolo Brunate", producer:"Giuseppe Rinaldi", vintage:2017, color:8, country:2, region:"2101 Piemonte", cost:22000, sell:78000, taste:"薔薇とタール、力強い酸"},
-    {id:"w04", name:"Champagne Grand Cru Blanc de Blancs", producer:"Pierre Péters", vintage:null, color:1, country:1, region:"1201 Champagne", cost:9800, sell:32000, taste:"柑橘と白い花、繊細な泡"},
-    {id:"w05", name:"Riesling Clos Sainte Hune", producer:"Trimbach", vintage:2016, color:5, country:1, region:"1301 Alsace", cost:18000, sell:62000, taste:"ライムと火打石、張る酸"},
-    {id:"w06", name:"Brunello di Montalcino", producer:"Soldera", vintage:2015, color:8, country:2, region:"2201 Toscana", cost:88000, sell:280000, taste:"ドライフラワーと凝縮果実"},
-    {id:"w07", name:"Coteaux Champenois Rouge", producer:"Bdx", vintage:2020, color:8, country:1, region:"1201 Champagne", cost:12000, sell:39000, taste:"軽やかな赤果実と塩味"},
-    {id:"w08", name:"Sancerre Blanc", producer:"Vacheron", vintage:2021, color:5, country:1, region:"1401 Loire", cost:5200, sell:17000, taste:"グレープフルーツと青い草"},
-    {id:"w09", name:"Tokaji Aszú 5 Puttonyos", producer:"Royal Tokaji", vintage:2013, color:9, country:5, region:"5101 Tokaj", cost:8800, sell:28000, taste:"杏と蜂蜜の甘美な余韻"},
-    {id:"w10", name:"Napa Cabernet Sauvignon", producer:"Ridge", vintage:2018, color:8, country:6, region:"6101 Napa", cost:14000, sell:46000, taste:"カシスと杉、豊かな果実"},
-    {id:"w11", name:"Koshu Sur Lie", producer:"Grace", vintage:2022, color:5, country:8, region:"8101 Yamanashi", cost:2400, sell:8800, taste:"和柑橘と旨味、繊細な辛口"},
-    {id:"w12", name:"Champagne Rosé Brut", producer:"Egly-Ouriet", vintage:null, color:2, country:1, region:"1201 Champagne", cost:16000, sell:52000, taste:"赤い果実と芳ばしい厚み"},
+    {id:"w01", name:"Chambolle-Musigny 1er Cru Les Amoureuses", producer:"Roumier", vintage:2018, color:8, country:1, region:"1104 Chambolle Musigny", cost:48000, sell:158000, taste:"華やかな赤果実と絹の単寧", supplier:"フィネス"},
+    {id:"w02", name:"Bâtard-Montrachet Grand Cru", producer:"Leflaive", vintage:2019, color:5, country:1, region:"1108 Puligny", cost:62000, sell:198000, taste:"蜂蜜とナッツ、豊潤な樽香", supplier:"ラック・コーポレーション"},
+    {id:"w03", name:"Barolo Brunate", producer:"Giuseppe Rinaldi", vintage:2017, color:8, country:2, region:"2101 Piemonte", cost:22000, sell:78000, taste:"薔薇とタール、力強い酸", supplier:"ヴィントナーズ"},
+    {id:"w04", name:"Champagne Grand Cru Blanc de Blancs", producer:"Pierre Péters", vintage:null, color:1, country:1, region:"1201 Champagne", cost:9800, sell:32000, taste:"柑橘と白い花、繊細な泡", supplier:"テラヴェール"},
+    {id:"w05", name:"Riesling Clos Sainte Hune", producer:"Trimbach", vintage:2016, color:5, country:1, region:"1301 Alsace", cost:18000, sell:62000, taste:"ライムと火打石、張る酸", supplier:"日本リカー"},
+    {id:"w06", name:"Brunello di Montalcino", producer:"Soldera", vintage:2015, color:8, country:2, region:"2201 Toscana", cost:88000, sell:280000, taste:"ドライフラワーと凝縮果実", supplier:"フィネス"},
+    {id:"w07", name:"Coteaux Champenois Rouge", producer:"Bdx", vintage:2020, color:8, country:1, region:"1201 Champagne", cost:12000, sell:39000, taste:"軽やかな赤果実と塩味", supplier:"テラヴェール"},
+    {id:"w08", name:"Sancerre Blanc", producer:"Vacheron", vintage:2021, color:5, country:1, region:"1401 Loire", cost:5200, sell:17000, taste:"グレープフルーツと青い草", supplier:"ラック・コーポレーション"},
+    {id:"w09", name:"Tokaji Aszú 5 Puttonyos", producer:"Royal Tokaji", vintage:2013, color:9, country:5, region:"5101 Tokaj", cost:8800, sell:28000, taste:"杏と蜂蜜の甘美な余韻", supplier:"ヴィントナーズ"},
+    {id:"w10", name:"Napa Cabernet Sauvignon", producer:"Ridge", vintage:2018, color:8, country:6, region:"6101 Napa", cost:14000, sell:46000, taste:"カシスと杉、豊かな果実", supplier:"中川ワイン"},
+    {id:"w11", name:"Koshu Sur Lie", producer:"Grace", vintage:2022, color:5, country:8, region:"8101 Yamanashi", cost:2400, sell:8800, taste:"和柑橘と旨味、繊細な辛口", supplier:"蔵元直送"},
+    {id:"w12", name:"Champagne Rosé Brut", producer:"Egly-Ouriet", vintage:null, color:2, country:1, region:"1201 Champagne", cost:16000, sell:52000, taste:"赤い果実と芳ばしい厚み", supplier:"エノテカ"},
   ],
   // 初期残高は ADJUST（棚卸し起点）で投入＝設計書 §7-3
   events:null
@@ -301,6 +309,7 @@ function viewStock(){
   let cs=currentStock();
   if(stockStoreFilter!=="all") cs=cs.filter(r=>r.store_id===stockStoreFilter);
   cs.sort((a,b)=> wineById(a.wine_id).name.localeCompare(wineById(b.wine_id).name));
+  const lowList=cs.filter(r=>r.qty<=2), critN=cs.filter(r=>r.qty<=1).length;
   const tabs=`<div class="store-tabs">
     <button class="${stockStoreFilter==='all'?'on':''}" onclick="stockStoreFilter='all';render()">全店</button>
     ${DB.stores.map(s=>`<button class="${stockStoreFilter===s.id?'on':''}" onclick="stockStoreFilter='${s.id}';render()">${s.name}</button>`).join("")}
@@ -310,16 +319,19 @@ function viewStock(){
     const region=(w.region||"").replace(/^\d+\s*/,""); // 地域コードの先頭番号を除いた地名
     const ratio=w.sell? Math.round(w.cost/w.sell*100) : null; // 原価率＝取得単価÷売価
     const q=encodeURIComponent(`${w.producer||""} ${w.name} ${w.vintage||""} ワイン 味わい`);
-    return `<tr>
+    const crit=r.qty<=1, warn=r.qty===2;
+    const lowBadge = crit?`<br><span class="lowstock crit">ラスト1本</span>` : (warn?`<br><span class="lowstock warn">残りわずか</span>`:"");
+    return `<tr class="${crit?'crit':(warn?'low':'')}">
       <td><b>${w.name}</b></td>
       <td style="white-space:nowrap"><b>${w.vintage||"NV"}</b></td>
       <td>${w.producer||"—"}</td>
+      <td>${w.supplier?`<span class="chip">${w.supplier}</span>`:"—"}</td>
       <td style="white-space:nowrap"><span class="swatch" style="background:${COLOR_SWATCH[w.color]||'#ccc'}"></span>${COLOR[w.color]||"—"}</td>
       <td>${COUNTRY[w.country]||""}${region?`<br><span class="hint">${region}</span>`:""}</td>
       <td class="taste-cell">${w.taste?`${w.taste}<br><a href="https://www.google.com/search?q=${q}" target="_blank" rel="noopener">詳細</a>`:"—"}</td>
       <td>${storeById(r.store_id).name}</td>
       <td><span class="chip">${shelfById(r.shelf_id)?.code||"-"}</span></td>
-      <td class="num"><b>${r.qty}</b></td>
+      <td class="num"><b>${r.qty}</b>${lowBadge}</td>
       <td class="num">${yen(w.cost)}</td>
       <td class="num">${w.sell?yen(w.sell):"—"}</td>
       <td class="num">${ratio!=null?ratio+"%":"—"}</td>
@@ -336,10 +348,11 @@ function viewStock(){
   <div class="sub">在庫数は保存していません。台帳イベントの合計 <code>Σ qty_delta</code> を都度算出した結果です（在庫&gt;0のみ表示）。</div>
   ${kpiBar()}
   <div class="banner">この一覧は <b>入庫・出庫・移動・棚卸し</b> のどの操作をしても <b>即座に</b> 更新されます。手でセルを書き換える運用を廃止し、増減は必ずイベントとして残ります。</div>
+  ${lowList.length?`<div class="banner" style="background:var(--amber-bg);border-color:#e6cf93;color:var(--amber)"><b>残りわずか ${lowList.length} 件</b>${critN?`（うち <b>ラスト1本 ${critN} 件</b>）`:""} — 高額ボトルの欠品前に補充判断を。下表で <span class="lowstock warn">残りわずか</span>／<span class="lowstock crit">ラスト1本</span> をハイライトしています。</div>`:""}
   <div class="card">
     <h2>現在在庫 <span class="tag">在庫&gt;0</span></h2>
     ${tabs}
-    ${cs.length? `<div style="overflow-x:auto"><table><thead><tr><th>銘柄</th><th>VTG</th><th>生産者</th><th>色</th><th>産地</th><th>味わい</th><th>店舗</th><th>棚</th><th class="num">在庫</th><th class="num">取得単価</th><th class="num">売価</th><th class="num">原価率</th><th class="num">評価額</th></tr></thead><tbody>${rows}</tbody></table></div>`
+    ${cs.length? `<div style="overflow-x:auto"><table><thead><tr><th>銘柄</th><th>VTG</th><th>生産者</th><th>仕入れ元</th><th>色</th><th>産地</th><th>味わい</th><th>店舗</th><th>棚</th><th class="num">在庫</th><th class="num">取得単価</th><th class="num">売価</th><th class="num">原価率</th><th class="num">評価額</th></tr></thead><tbody>${rows}</tbody></table></div>`
       : `<div class="empty">在庫がありません</div>`}
   </div>`;
 }
@@ -384,6 +397,7 @@ function kpiBar(){
 function viewReceive(){
   const wineOpts=DB.wines.map(w=>`<option value="${w.id}">${w.name} ${w.vintage||"NV"} / ${w.producer}</option>`).join("");
   const storeOpts=DB.stores.map(s=>`<option value="${s.id}">${s.name}</option>`).join("");
+  const supplierOpts=SUPPLIERS.map(s=>`<option value="${s}">${s}</option>`).join("");
   return `
   <h1>入庫（検品）</h1>
   <div class="sub">納品書を取り込み → AIが銘柄を曖昧マッチ → 人は<b>例外だけ</b>確認して確定。確定すると <span class="pill RECEIVE">入庫</span> イベントが台帳に追記されます。</div>
@@ -404,14 +418,17 @@ function viewReceive(){
   <div class="card">
     <h2>② 検品して入庫を確定</h2>
     <div class="grid g3">
-      <div><label class="f">銘柄</label><select id="r_wine">${wineOpts}</select></div>
+      <div><label class="f">銘柄</label><select id="r_wine" onchange="syncSupplier()">${wineOpts}</select></div>
       <div><label class="f">店舗</label><select id="r_store" onchange="syncShelves('r_store','r_shelf')">${storeOpts}</select></div>
       <div><label class="f">棚</label><select id="r_shelf"></select></div>
     </div>
-    <div class="grid g3" style="margin-top:16px">
+    <div class="grid g2" style="margin-top:16px">
       <div><label class="f">本数</label><input id="r_qty" type="number" value="2" min="1"><div class="field-help">例：2（納品された本数）</div></div>
       <div><label class="f">仕入単価（円）</label><input id="r_cost" type="number" value="48000"><div class="field-help">例：48000（税抜・1本あたり）</div></div>
-      <div><label class="f">取得元</label><select id="r_src"><option value="DELIVERY_NOTE">納品書</option><option value="MANUAL">手入力</option></select></div>
+    </div>
+    <div class="grid g2" style="margin-top:16px">
+      <div><label class="f">仕入れ元</label><select id="r_supplier">${supplierOpts}</select><div class="field-help">どのインポーター／業者からの仕入れか（銘柄選択で自動セット）</div></div>
+      <div><label class="f">取得元</label><select id="r_src"><option value="DELIVERY_NOTE">納品書</option><option value="MANUAL">手入力</option></select><div class="field-help">この入力をどう取得したか（記録方法）</div></div>
     </div>
     <div class="row-actions">
       <button class="btn" onclick="doReceive()">入庫を確定</button>
@@ -536,6 +553,12 @@ function syncShelves(storeSel, shelfSel){
   const sid=document.getElementById(storeSel).value;
   document.getElementById(shelfSel).innerHTML=shelvesOf(sid).map(s=>`<option value="${s.id}">${s.code}</option>`).join("");
 }
+// 銘柄選択に応じて仕入れ元をマスタの主な仕入れ元へ自動セット（人手の入力ミスを減らす）
+function syncSupplier(){
+  const w=wineById(document.getElementById("r_wine").value);
+  const sel=document.getElementById("r_supplier");
+  if(sel && w && w.supplier) sel.value=w.supplier;
+}
 function syncAdjust(){
   const sel=document.getElementById("a_target");
   const sys=sel.selectedOptions[0]?.dataset.sys||0;
@@ -554,11 +577,11 @@ function syncAdjustDiff(){
 
 function doReceive(){
   const wid=val("r_wine"), sid=val("r_store"), shid=val("r_shelf");
-  const qty=+val("r_qty"), cost=+val("r_cost");
+  const qty=+val("r_qty"), cost=+val("r_cost"), supplier=val("r_supplier");
   if(qty<1) return toast("本数を確認してください");
   append({id:nextId("ev"),type:"RECEIVE",wine_id:wid,store_id:sid,shelf_id:shid,
-    qty_delta:qty,unit_cost:cost,source:val("r_src"),occurred_at:new Date().toISOString(),
-    operator:"検品担当",note:"検品確定",transfer_id:null});
+    qty_delta:qty,unit_cost:cost,source:val("r_src"),supplier:supplier,occurred_at:new Date().toISOString(),
+    operator:"検品担当",note:`検品確定（仕入元：${supplier}）`,transfer_id:null});
   toast(`入庫 +${qty} を台帳に追記しました`);
   go("stock");
 }
@@ -614,7 +637,7 @@ function render(){
   const m=document.getElementById("main");
   m.innerHTML=({stock:viewStock,map:viewMap,receive:viewReceive,sell:viewSell,transfer:viewTransfer,adjust:viewAdjust,ledger:viewLedger})[VIEW]();
   // post-render syncs
-  if(VIEW==="receive"){syncShelves("r_store","r_shelf");}
+  if(VIEW==="receive"){syncShelves("r_store","r_shelf");syncSupplier();}
   if(VIEW==="transfer"){syncShelves("t_to","t_shelf");}
   if(VIEW==="adjust"){syncAdjust();}
 }
