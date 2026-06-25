@@ -319,31 +319,73 @@ function kpis(){
 }
 
 /* ============================================================ VIEWS ============================================================ */
+// ダッシュボードの図形（外部ライブラリ非依存・SVG）
+const DASH_PAL=["#8a1c3d","#2b5f86","#1f7a40","#8a5a00","#b9758a","#5a8a86","#7a5aa8","#a88b3f"];
+// ドーナツ円グラフ：segs=[{name,value,qty,color}]、中央に大数字＋ラベル、右に凡例
+function donutSVG(segs, centerTop, centerBot){
+  const size=168, stroke=26, r=(size-stroke)/2, C=2*Math.PI*r, cx=size/2;
+  const total=segs.reduce((a,s)=>a+s.value,0)||1; let off=0;
+  const arcs=segs.map(s=>{const f=s.value/total; const dash=`${(f*C).toFixed(1)} ${(C-f*C).toFixed(1)}`; const doff=(-off*C).toFixed(1); off+=f;
+    return `<circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="${s.color}" stroke-width="${stroke}" stroke-dasharray="${dash}" stroke-dashoffset="${doff}" transform="rotate(-90 ${cx} ${cx})"/>`;}).join("");
+  const legend=segs.map(s=>`<div class="brow" style="margin-bottom:8px"><div class="bl"><span><span class="swatch" style="background:${s.color}"></span>${s.name}</span><b>${yen(s.value)} <span class="hint">/ ${s.qty}本・${Math.round(s.value/total*100)}%</span></b></div></div>`).join("");
+  return `<div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap">
+    <svg viewBox="0 0 ${size} ${size}" width="150" height="150" style="flex:none">
+      <circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="var(--surface-2)" stroke-width="${stroke}"/>${arcs}
+      <text x="${cx}" y="${cx-2}" text-anchor="middle" font-size="30" font-weight="700" fill="var(--ink)">${centerTop}</text>
+      <text x="${cx}" y="${cx+20}" text-anchor="middle" font-size="12" fill="var(--muted)">${centerBot}</text>
+    </svg>
+    <div style="flex:1;min-width:180px">${legend}</div>
+  </div>`;
+}
+// ゲージ（リング状の進捗）：割合pct(0-100)を太い弧で表示
+function gaugeSVG(pct, label){
+  const size=168, stroke=22, r=(size-stroke)/2, C=2*Math.PI*r, cx=size/2;
+  const f=Math.max(0,Math.min(100,pct))/100;
+  return `<svg viewBox="0 0 ${size} ${size}" width="150" height="150" style="flex:none">
+    <circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="var(--surface-2)" stroke-width="${stroke}"/>
+    <circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="var(--primary)" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="${(f*C).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 ${cx} ${cx})"/>
+    <text x="${cx}" y="${cx-2}" text-anchor="middle" font-size="34" font-weight="700" fill="var(--primary)">${pct}<tspan font-size="16">%</tspan></text>
+    <text x="${cx}" y="${cx+20}" text-anchor="middle" font-size="12" fill="var(--muted)">${label}</text>
+  </svg>`;
+}
+
 function viewDash(){
   const cs=currentStock();
   const vv=r=>r.qty*wineById(r.wine_id).cost;                       // 在庫評価額（原価）
+  const totalBottles=cs.reduce((a,r)=>a+r.qty,0);
   const totalCost=cs.reduce((a,r)=>a+vv(r),0);
   const totalSell=cs.reduce((a,r)=>a+r.qty*(wineById(r.wine_id).sell||0),0);
   const grossPct=totalSell? Math.round((1-totalCost/totalSell)*100):0; // 想定粗利率
   const low=cs.filter(r=>r.qty<=2).sort((a,b)=>(a.qty-b.qty)||(vv(b)-vv(a)));
-  // 任意キーで在庫を集計（本数・評価額）
-  const agg=keyFn=>{const m={};cs.forEach(r=>{const k=keyFn(r);if(!m[k])m[k]={qty:0,value:0};m[k].qty+=r.qty;m[k].value+=vv(r);});
-    return Object.entries(m).map(([k,v])=>({name:k,qty:v.qty,value:v.value})).sort((a,b)=>b.value-a.value);};
-  const byStore=DB.stores.map(s=>{const rs=cs.filter(r=>r.store_id===s.id);
-    return {name:s.name,qty:rs.reduce((a,r)=>a+r.qty,0),value:rs.reduce((a,r)=>a+vv(r),0)};}).sort((a,b)=>b.value-a.value);
-  const byColor=agg(r=>COLOR[wineById(r.wine_id).color]||"—");
-  const bySupplier=agg(r=>wineById(r.wine_id).supplier||"—");
+  // 店舗別（色は店舗順で固定割当）
+  const byStore=DB.stores.map((s,i)=>{const rs=cs.filter(r=>r.store_id===s.id);
+    return {name:s.name,qty:rs.reduce((a,r)=>a+r.qty,0),value:rs.reduce((a,r)=>a+vv(r),0),color:DASH_PAL[i%DASH_PAL.length]};})
+    .filter(s=>s.value>0).sort((a,b)=>b.value-a.value);
+  // タイプ別（色＝ワインの色スウォッチ＝意味のある配色）
+  const cm={};cs.forEach(r=>{const id=wineById(r.wine_id).color;if(!cm[id])cm[id]={qty:0,value:0};cm[id].qty+=r.qty;cm[id].value+=vv(r);});
+  const byColor=Object.entries(cm).map(([id,v])=>({name:COLOR[id]||"—",color:COLOR_SWATCH[id]||"#ccc",qty:v.qty,value:v.value})).sort((a,b)=>b.value-a.value);
+  // 仕入れ元別（ランキング＝棒グラフ）
+  const sm={};cs.forEach(r=>{const s=wineById(r.wine_id).supplier||"—";if(!sm[s])sm[s]={qty:0,value:0};sm[s].qty+=r.qty;sm[s].value+=vv(r);});
+  const bySupplier=Object.entries(sm).map(([k,v])=>({name:k,qty:v.qty,value:v.value})).sort((a,b)=>b.value-a.value);
   const recent=[...DB.events].reverse().slice(0,6);
   const bars=arr=>{const mx=Math.max(1,...arr.map(x=>x.value));
-    return arr.map(x=>`<div class="brow"><div class="bl"><span>${x.name}</span><b>${yen(x.value)} <span class="hint">/ ${x.qty}本</span></b></div><div class="bar"><span style="width:${Math.round(x.value/mx*100)}%"></span></div></div>`).join("");};
+    return arr.map((x,i)=>`<div class="brow"><div class="bl"><span>${x.name}</span><b>${yen(x.value)} <span class="hint">/ ${x.qty}本</span></b></div><div class="bar"><span style="width:${Math.round(x.value/mx*100)}%;background:${DASH_PAL[i%DASH_PAL.length]}"></span></div></div>`).join("");};
   return `
   <h1>ダッシュボード <span class="htag">在庫の全体像</span></h1>
   <div class="sub">在庫台帳から経営目線の指標を都度算出。数えるのではなく、<b>イベントの合計</b>から在庫・評価額・粗利・偏りまで一目で把握できます。</div>
   ${kpiBar()}
-  <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
-    <div class="kpi"><div class="k">在庫の想定売価</div><div class="v">${yen(totalSell)}</div></div>
-    <div class="kpi accent"><div class="k">想定粗利（売価−原価）</div><div class="v">${yen(totalSell-totalCost)}</div></div>
-    <div class="kpi"><div class="k">平均粗利率</div><div class="v">${grossPct}<small> %</small></div></div>
+  <div class="dash-grid">
+    <div class="card"><h2>収益の見込み</h2>
+      <div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap">
+        ${gaugeSVG(grossPct,"平均粗利率")}
+        <div style="flex:1;min-width:180px">
+          <div class="brow"><div class="bl"><span>在庫の想定売価</span><b>${yen(totalSell)}</b></div></div>
+          <div class="brow"><div class="bl"><span>在庫評価額（原価）</span><b>${yen(totalCost)}</b></div></div>
+          <div class="brow"><div class="bl"><span>想定粗利（売価−原価）</span><b style="color:var(--primary)">${yen(totalSell-totalCost)}</b></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card"><h2>タイプ別の構成</h2>${donutSVG(byColor, totalBottles, "本")}</div>
   </div>
   <div class="card">
     <h2>要補充 <span class="tag">在庫 ≤ 2本</span></h2>
@@ -355,17 +397,14 @@ function viewDash(){
       : `<div class="empty">要補充の銘柄はありません</div>`}
   </div>
   <div class="dash-grid">
-    <div class="card"><h2>店舗別の在庫評価額</h2>${bars(byStore)}</div>
-    <div class="card"><h2>タイプ別の構成</h2>${bars(byColor)}</div>
-  </div>
-  <div class="dash-grid">
+    <div class="card"><h2>店舗別の在庫</h2>${donutSVG(byStore, totalBottles, "本")}</div>
     <div class="card"><h2>仕入れ元別の在庫評価額 <span class="tag">調達の偏り</span></h2>${bars(bySupplier)}</div>
-    <div class="card"><h2>最近の動き <span class="tag">直近6件</span></h2>
-      ${recent.map(e=>{const w=wineById(e.wine_id);const sign=e.qty_delta>0?`+${e.qty_delta}`:`${e.qty_delta}`;
-        return `<div class="reorder"><span class="pill ${e.type}">${typeLabel(e.type)}</span>
-          <span class="rn">${w.name} <span class="hint">${fmtTime(e.occurred_at)}</span></span>
-          <span class="rv" style="color:${e.qty_delta>0?'var(--green)':'var(--red)'};font-weight:700">${sign}</span></div>`;}).join("")}
-    </div>
+  </div>
+  <div class="card"><h2>最近の動き <span class="tag">直近6件</span></h2>
+    ${recent.map(e=>{const w=wineById(e.wine_id);const sign=e.qty_delta>0?`+${e.qty_delta}`:`${e.qty_delta}`;
+      return `<div class="reorder"><span class="pill ${e.type}">${typeLabel(e.type)}</span>
+        <span class="rn">${w.name} <span class="hint">${fmtTime(e.occurred_at)}</span></span>
+        <span class="rv" style="color:${e.qty_delta>0?'var(--green)':'var(--red)'};font-weight:700">${sign}</span></div>`;}).join("")}
   </div>`;
 }
 
