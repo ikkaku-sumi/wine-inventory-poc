@@ -322,18 +322,21 @@ function kpis(){
 // ダッシュボードの図形（外部ライブラリ非依存・SVG）
 const DASH_PAL=["#8a1c3d","#2b5f86","#1f7a40","#8a5a00","#b9758a","#5a8a86","#7a5aa8","#a88b3f"];
 // ドーナツ円グラフ：segs=[{name,value,qty,color}]、中央に大数字＋ラベル、右に凡例
+// 継ぎ目ズレを避けるため conic-gradient で描画（隣接セグメントが同じ角度を共有＝隙間/重なりが出ない）
 function donutSVG(segs, centerTop, centerBot){
-  const size=168, stroke=26, r=(size-stroke)/2, C=2*Math.PI*r, cx=size/2;
-  const total=segs.reduce((a,s)=>a+s.value,0)||1; let off=0;
-  const arcs=segs.map(s=>{const f=s.value/total; const dash=`${(f*C).toFixed(1)} ${(C-f*C).toFixed(1)}`; const doff=(-off*C).toFixed(1); off+=f;
-    return `<circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="${s.color}" stroke-width="${stroke}" stroke-dasharray="${dash}" stroke-dashoffset="${doff}" transform="rotate(-90 ${cx} ${cx})"/>`;}).join("");
+  const total=segs.reduce((a,s)=>a+s.value,0)||1; let acc=0;
+  const stops=segs.map(s=>{const a=acc/total*360; acc+=s.value; const b=acc/total*360;
+    return `${s.color} ${a.toFixed(3)}deg ${b.toFixed(3)}deg`;}).join(",");
   const legend=segs.map(s=>`<div class="brow" style="margin-bottom:8px"><div class="bl"><span><span class="swatch" style="background:${s.color}"></span>${s.name}</span><b>${yen(s.value)} <span class="hint">/ ${s.qty}本・${Math.round(s.value/total*100)}%</span></b></div></div>`).join("");
+  const mask="radial-gradient(circle at center, transparent 47px, #000 48px)";
   return `<div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap">
-    <svg viewBox="0 0 ${size} ${size}" width="150" height="150" style="flex:none">
-      <circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="var(--surface-2)" stroke-width="${stroke}"/>${arcs}
-      <text x="${cx}" y="${cx-2}" text-anchor="middle" font-size="30" font-weight="700" fill="var(--ink)">${centerTop}</text>
-      <text x="${cx}" y="${cx+20}" text-anchor="middle" font-size="12" fill="var(--muted)">${centerBot}</text>
-    </svg>
+    <div style="position:relative;width:150px;height:150px;flex:none">
+      <div style="width:150px;height:150px;border-radius:50%;background:conic-gradient(${stops});-webkit-mask:${mask};mask:${mask}"></div>
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+        <span style="font-size:30px;font-weight:700;color:var(--ink);line-height:1.1">${centerTop}</span>
+        <span style="font-size:12px;color:var(--muted)">${centerBot}</span>
+      </div>
+    </div>
     <div style="flex:1;min-width:180px">${legend}</div>
   </div>`;
 }
