@@ -94,6 +94,19 @@
   .lowstock.crit{background:var(--red-bg);color:var(--red)}
   tr.low td{background:#fffaf0}
   tr.crit td{background:var(--red-bg)}
+  /* ---------- dashboard ---------- */
+  .dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  @media(max-width:1100px){.dash-grid{grid-template-columns:1fr}}
+  .bar{position:relative;background:var(--surface-2);border-radius:4px;height:8px;overflow:hidden;margin-top:6px}
+  .bar>span{position:absolute;left:0;top:0;bottom:0;background:var(--primary);border-radius:4px}
+  .brow{margin-bottom:14px}
+  .brow:last-child{margin-bottom:0}
+  .brow .bl{display:flex;justify-content:space-between;font-size:13px;color:var(--ink-2);gap:8px}
+  .brow .bl b{font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
+  .reorder{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line);font-size:14px}
+  .reorder:first-child{border-top:none}
+  .reorder .rn{flex:1;line-height:1.45}
+  .reorder .rv{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px;white-space:nowrap}
   .taste-cell{font-size:13px;color:var(--ink-2);min-width:170px;line-height:1.5}
   .taste-cell a{color:var(--primary);text-decoration:underline;font-size:12px}
   /* 棚マップ */
@@ -170,7 +183,8 @@
     </div>
     <nav id="nav">
       <div class="nav-group">管理</div>
-      <button data-v="stock" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>在庫一覧</button>
+      <button data-v="dash" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z"/></svg>ダッシュボード</button>
+      <button data-v="stock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>在庫一覧</button>
       <button data-v="map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg>棚マップ</button>
       <button data-v="receive"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v10m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>入庫（検品）</button>
       <button data-v="sell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V11m0 0l-4 4m4-4l4 4M4 7V5a2 2 0 012-2h12a2 2 0 012 2v2"/></svg>出庫（販売）</button>
@@ -256,7 +270,7 @@ function seedEvents(){
 /* ---------- state ---------- */
 // マスタ(wines/stores/shelves)は常にSEEDから読み込み、永続化するのは events のみ。
 // → 銘柄に項目を足してもブラウザ保存に阻まれず必ず反映される（スキーマ追加の取りこぼし防止）。
-let DB, VIEW="stock", stockStoreFilter="all";
+let DB, VIEW="dash", stockStoreFilter="all";
 const LS_KEY="wine_poc_events";
 function load(){
   let events=null;
@@ -305,6 +319,56 @@ function kpis(){
 }
 
 /* ============================================================ VIEWS ============================================================ */
+function viewDash(){
+  const cs=currentStock();
+  const vv=r=>r.qty*wineById(r.wine_id).cost;                       // 在庫評価額（原価）
+  const totalCost=cs.reduce((a,r)=>a+vv(r),0);
+  const totalSell=cs.reduce((a,r)=>a+r.qty*(wineById(r.wine_id).sell||0),0);
+  const grossPct=totalSell? Math.round((1-totalCost/totalSell)*100):0; // 想定粗利率
+  const low=cs.filter(r=>r.qty<=2).sort((a,b)=>(a.qty-b.qty)||(vv(b)-vv(a)));
+  // 任意キーで在庫を集計（本数・評価額）
+  const agg=keyFn=>{const m={};cs.forEach(r=>{const k=keyFn(r);if(!m[k])m[k]={qty:0,value:0};m[k].qty+=r.qty;m[k].value+=vv(r);});
+    return Object.entries(m).map(([k,v])=>({name:k,qty:v.qty,value:v.value})).sort((a,b)=>b.value-a.value);};
+  const byStore=DB.stores.map(s=>{const rs=cs.filter(r=>r.store_id===s.id);
+    return {name:s.name,qty:rs.reduce((a,r)=>a+r.qty,0),value:rs.reduce((a,r)=>a+vv(r),0)};}).sort((a,b)=>b.value-a.value);
+  const byColor=agg(r=>COLOR[wineById(r.wine_id).color]||"—");
+  const bySupplier=agg(r=>wineById(r.wine_id).supplier||"—");
+  const recent=[...DB.events].reverse().slice(0,6);
+  const bars=arr=>{const mx=Math.max(1,...arr.map(x=>x.value));
+    return arr.map(x=>`<div class="brow"><div class="bl"><span>${x.name}</span><b>${yen(x.value)} <span class="hint">/ ${x.qty}本</span></b></div><div class="bar"><span style="width:${Math.round(x.value/mx*100)}%"></span></div></div>`).join("");};
+  return `
+  <h1>ダッシュボード <span class="htag">在庫の全体像</span></h1>
+  <div class="sub">在庫台帳から経営目線の指標を都度算出。数えるのではなく、<b>イベントの合計</b>から在庫・評価額・粗利・偏りまで一目で把握できます。</div>
+  ${kpiBar()}
+  <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+    <div class="kpi"><div class="k">在庫の想定売価</div><div class="v">${yen(totalSell)}</div></div>
+    <div class="kpi accent"><div class="k">想定粗利（売価−原価）</div><div class="v">${yen(totalSell-totalCost)}</div></div>
+    <div class="kpi"><div class="k">平均粗利率</div><div class="v">${grossPct}<small> %</small></div></div>
+  </div>
+  <div class="card">
+    <h2>要補充 <span class="tag">在庫 ≤ 2本</span></h2>
+    ${low.length? low.map(r=>{const w=wineById(r.wine_id);const crit=r.qty<=1;
+      return `<div class="reorder"><span class="lowstock ${crit?'crit':'warn'}">${crit?'ラスト1本':'残りわずか'}</span>
+        <span class="rn"><b>${w.name}</b> <span class="hint">${w.vintage||'NV'}</span><br>
+        <span class="rv">${storeById(r.store_id).name}／${shelfById(r.shelf_id)?.code||'-'}・仕入元：${w.supplier||'—'}</span></span>
+        <span class="rv">在庫 <b style="color:var(--ink)">${r.qty}</b>・${yen(vv(r))}</span></div>`;}).join("")
+      : `<div class="empty">要補充の銘柄はありません</div>`}
+  </div>
+  <div class="dash-grid">
+    <div class="card"><h2>店舗別の在庫評価額</h2>${bars(byStore)}</div>
+    <div class="card"><h2>タイプ別の構成</h2>${bars(byColor)}</div>
+  </div>
+  <div class="dash-grid">
+    <div class="card"><h2>仕入れ元別の在庫評価額 <span class="tag">調達の偏り</span></h2>${bars(bySupplier)}</div>
+    <div class="card"><h2>最近の動き <span class="tag">直近6件</span></h2>
+      ${recent.map(e=>{const w=wineById(e.wine_id);const sign=e.qty_delta>0?`+${e.qty_delta}`:`${e.qty_delta}`;
+        return `<div class="reorder"><span class="pill ${e.type}">${typeLabel(e.type)}</span>
+          <span class="rn">${w.name} <span class="hint">${fmtTime(e.occurred_at)}</span></span>
+          <span class="rv" style="color:${e.qty_delta>0?'var(--green)':'var(--red)'};font-weight:700">${sign}</span></div>`;}).join("")}
+    </div>
+  </div>`;
+}
+
 function viewStock(){
   let cs=currentStock();
   if(stockStoreFilter!=="all") cs=cs.filter(r=>r.store_id===stockStoreFilter);
@@ -635,7 +699,7 @@ function go(v){ VIEW=v; render(); }
 function render(){
   document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===VIEW));
   const m=document.getElementById("main");
-  m.innerHTML=({stock:viewStock,map:viewMap,receive:viewReceive,sell:viewSell,transfer:viewTransfer,adjust:viewAdjust,ledger:viewLedger})[VIEW]();
+  m.innerHTML=({dash:viewDash,stock:viewStock,map:viewMap,receive:viewReceive,sell:viewSell,transfer:viewTransfer,adjust:viewAdjust,ledger:viewLedger})[VIEW]();
   // post-render syncs
   if(VIEW==="receive"){syncShelves("r_store","r_shelf");syncSupplier();}
   if(VIEW==="transfer"){syncShelves("t_to","t_shelf");}
