@@ -99,6 +99,8 @@
       <a href="#mockups">画面イメージ</a>
       <a href="#flow">ユーザーフロー</a>
       <a href="#questions">確認事項</a>
+      <a href="#cost">想定料金</a>
+      <a href="#whythis">構成の考え方</a>
       <span class="sep"></span>
       <a href="#arch">構成</a>
       <a href="#lineworks">LINE WORKS</a>
@@ -126,8 +128,8 @@
       </div>
       <div class="meta">
         <span><b>対象</b>店舗開発ご担当・経営幹部／委託エンジニア</span>
-        <span><b>版</b>v0.4（ドラフト）</span>
-        <span><b>更新</b>2026-06-22</span>
+        <span><b>版</b>v0.5（ドラフト）</span>
+        <span><b>更新</b>2026-07-31</span>
       </div>
     </div>
 
@@ -157,9 +159,9 @@
 
   <section id="mockups">
     <h2>画面イメージ（動くPoC）</h2>
-    <p><b>実際にブラウザで操作できるPoCを公開しています</b>（合成データ・インストール/ログイン不要）。在庫一覧（<b>銘柄／VTG／生産者／色／産地／味わい／在庫／取得単価／売価／原価率／評価額</b>）、<b>棚マップ</b>、入庫（検品）・出庫・店舗間移動・棚卸し、イベント台帳が<b>そのまま動きます</b>。UIはデジタル庁デザインシステムに準拠。</p>
+    <p><b>実際にブラウザで操作できるPoCを公開しています</b>（合成データ・インストール/ログイン不要）。在庫一覧（<b>銘柄／VTG／生産者／色／産地／味わい／在庫／取得単価／売価／原価率／評価額</b>）、<b>棚マップ</b>、入庫（検品）・出庫・棚卸し、イベント台帳が<b>そのまま動きます</b>。UIはデジタル庁デザインシステムに準拠。</p>
     <p><a href="https://ikkaku-sumi.github.io/wine-inventory-poc/" target="_blank" rel="noopener" style="display:inline-block;background:var(--wine);color:#fff;text-decoration:none;padding:11px 20px;border-radius:9px;font-size:14px;font-weight:700">動くPoCを開く（ブラウザで操作できます）</a></p>
-    <p class="note">「在庫一覧→出庫で1本売る（消し忘れゼロ）→店舗間移動で総本数は不変→棚卸しで差分が表面化→イベント台帳で全証跡」を実機で体感できます。<br>参考：<a href="https://ikkaku-sumi.github.io/wine-inventory-poc/">静的な画面モックアップ（旧・雰囲気確認用）</a>も残していますが、配色・項目はPoC側が最新です。</p>
+    <p class="note">「在庫一覧→出庫で1本売る（消し忘れゼロ）→棚卸しで差分が表面化→イベント台帳で全証跡」を実機で体感できます。<br>参考：<a href="https://ikkaku-sumi.github.io/wine-inventory-poc/">静的な画面モックアップ（旧・雰囲気確認用）</a>も残していますが、配色・項目はPoC側が最新です。</p>
   </section>
 
   <section id="flow">
@@ -168,7 +170,7 @@
     <table class="data">
       <tr><th>アクター</th><th>いつ</th><th>何を</th><th>ツール</th></tr>
       <tr><td>現場スタッフ</td><td>入荷時・提供時</td><td>納品書/ラベル撮影、開栓時のボトル撮影</td><td>LINE WORKS / Web</td></tr>
-      <tr><td>ソムリエ／店長</td><td>入荷後・随時・四半期</td><td>検品確定、値付け、棚卸し、（v2）移動</td><td>Web管理</td></tr>
+      <tr><td>ソムリエ／店長</td><td>入荷後・随時・四半期</td><td>検品確定、値付け、棚卸し</td><td>Web管理</td></tr>
       <tr><td>本部／経理</td><td>月次</td><td>原価率・在庫評価・店舗PLの確認</td><td>Web（読取）</td></tr>
       <tr><td>POS（ポスタス）</td><td>会計時</td><td>売上を記録 → 出庫として自動連携</td><td>API/CSV</td></tr>
       <tr><td>システム／AI</td><td>常時</td><td>画像解析・銘柄マッチ・差分算出・現在在庫計算</td><td>サーバレス関数</td></tr>
@@ -206,12 +208,75 @@ timeline
       <tr><td>販売・出庫</td><td>ワインが売れたときの<b>現状の記録方法</b>（今どう消し込んでいるか）</td><td><span class="pill">v1必須</span></td></tr>
       <tr><td>販売・出庫</td><td><b>メインPOS（ポスタス）のAPI/CSVにアクセスできるか</b>、売上が<b>「どの銘柄・VTGか」まで分かるか</b></td><td><span class="pill">最重要</span></td></tr>
       <tr><td>販売・出庫</td><td>終業時の棚撮影で“その日の販売”を割り出す運用は、現場で回せそうか</td><td><span class="pill f">中</span></td></tr>
-      <tr><td>体制・連携</td><td><b>LINE WORKS の Bot/API 利用許可</b>を情シス/管理者から取得できそうか（申請窓口）</td><td><span class="pill">v1必須</span></td></tr>
+      <tr><td>体制・連携</td><td><b>LINE WORKS の Bot/API 利用許可</b>を情シス/管理者から取得できそうか（申請窓口）。<b>標準はWeb/PWA取込のため未導入・未許可でも運用可</b></td><td><span class="pill f">任意</span></td></tr>
       <tr><td>体制・連携</td><td>検品・棚卸し・売価決定は<b>誰（どの役割）</b>が担当するか／権限を分ける範囲</td><td><span class="pill">v1必須</span></td></tr>
       <tr><td>将来</td><td>お客様の好み（過去に飲んだワイン）の記録場所（ソムリエAI用・所在確認のみ）</td><td><span class="pill f">将来</span></td></tr>
       <tr><td>将来</td><td>月次の原価率・在庫評価の確定ルール／会計（マネーフォワード等）連携の要否</td><td><span class="pill f">将来</span></td></tr>
     </table>
     <p class="note">「分からない／決まっていない」も立派な回答です（その項目はこちらで仮置きして進めます）。優先度「v1必須・最重要」が、最初の検証（hakubi 単店）に直接効きます。</p>
+  </section>
+
+  <section id="cost">
+    <h2>想定ランニングコスト（実運用時の月額）</h2>
+    <p><b>前提：</b>1〜5店舗規模・写真解析 月300〜600枚・為替150円/US$で試算。写真の取込口は<b>Web/PWA（無料・情シス承認不要）を標準</b>とし、LINE WORKS・LINE公式アカウント等のチャットは会社ごとに後付けできるオプションアダプタとします。<b>開発費・保守運用の人件費は含みません</b>（導入費として別掲）。</p>
+
+    <h3>構成別サマリ（最安〜上振れ）</h3>
+    <table class="data">
+      <tr><th>構成</th><th>月額目安</th><th>内容</th><th>向き</th></tr>
+      <tr><td><b>最安</b>（無料枠運用）</td><td class="num"><b>約100〜500円</b></td><td>Supabase無料枠＋AI解析の実費のみ。自動バックアップなし・7日間未アクセスでDB一時停止の制約あり</td><td>検証・立ち上げ期</td></tr>
+      <tr><td><b>標準</b>（推奨）</td><td class="num"><b>約4,000〜6,500円</b></td><td>Supabase Pro（バックアップ7日）＋AI解析＋独自ドメイン。本番運用の推奨構成</td><td>本番運用（マルチテナント共有）</td></tr>
+      <tr><td><b>上振れ</b></td><td class="num"><b>約15,000〜20,000円/社</b></td><td>会社別にDBを物理分離＋LINE公式アカウント有料プラン＋POS連携オプション料＋写真多量（月1,500枚超）</td><td>データ分離要求・通知多用の会社</td></tr>
+    </table>
+
+    <h3>項目別の内訳</h3>
+    <table class="data">
+      <tr><th>項目</th><th>最安</th><th>標準</th><th>上振れ</th><th>備考</th></tr>
+      <tr><td>コアDB・認証・写真Storage（Supabase）</td><td class="num">0円</td><td class="num">約3,800円</td><td class="num">約3,800円×社数</td><td>Pro＝US$25/月。無料枠は自動バックアップなし</td></tr>
+      <tr><td>サーバレス関数（取込・解析・マッチ）</td><td class="num">0円</td><td class="num">0円</td><td class="num">0円</td><td>Supabaseに含まれる。処理量は上限に達しない</td></tr>
+      <tr><td>AI画像解析（Gemini・Flash系）</td><td class="num">約100円</td><td class="num">約100〜500円</td><td class="num">約2,000円</td><td>1枚1円未満。写真枚数にのみ比例</td></tr>
+      <tr><td>写真の取込口</td><td class="num">0円（Web/PWA）</td><td class="num">0円（Web/PWA）</td><td class="num">約5,000円</td><td>上振れ＝LINE公式アカウント有料プラン。写真の受信とその場の返信は無料枠で可、通知を多用する場合のみ有料</td></tr>
+      <tr><td>Web管理画面のホスティング</td><td class="num">0円</td><td class="num">0円</td><td class="num">0円</td><td>静的配信は無料枠で十分</td></tr>
+      <tr><td>独自ドメイン</td><td class="num">0円（不使用）</td><td class="num">約150円</td><td class="num">約150円</td><td>年約1,800円の月割</td></tr>
+      <tr><td>POS連携（ポスタス等）</td><td class="num">0円（CSV手動）</td><td class="num">要確認</td><td class="num">要確認</td><td>API連携のオプション料金有無は各社のPOS契約による（唯一の未確定要素）</td></tr>
+      <tr><td>QR消耗品（採用時のみ）</td><td class="num">—</td><td class="num">数百円</td><td class="num">数百円</td><td>耐水ラベル代。ラベルプリンタ約1〜3万円は初期費（買い切り）</td></tr>
+    </table>
+
+    <div class="two">
+      <div class="card" style="background:#edf7f0;border-color:#bfe2cd">
+        <h4 style="margin:0 0 6px;color:#256b41">スケールしてもほぼ増えない</h4>
+        <p style="margin:0;font-size:13.5px">利用量に比例するのはAI解析代のみ。店舗・在庫本数が倍になっても月額は誤差程度。複数社展開もマルチテナント共有なら<b>追加1社あたり数百円/月</b>で、DB分離を求める会社のみ＋約3,800円/社。</p>
+      </div>
+      <div class="card" style="background:#fbf3e3;border-color:#ecd9ad">
+        <h4 style="margin:0 0 6px;color:#8a5a00">この表に含まれないもの</h4>
+        <p style="margin:0;font-size:13.5px">開発費／保守・運用の人件費（障害対応・銘柄マスタ整備）／ポスタス以外のPOS向けアダプタ追加開発費。これらは<b>導入費・保守費として別途</b>提示します。</p>
+      </div>
+    </div>
+    <p class="note">金額は2026-07時点の各社公表価格に基づく概算。為替・料金改定で変動します。</p>
+  </section>
+
+  <section id="whythis">
+    <h2>この構成で大丈夫？（技術選定の考え方・非エンジニア向け）</h2>
+    <p>「古くならないか」「一社に依存して大丈夫か」という不安に答えるため、選定の考え方を平易にまとめます。結論：<b>奇抜なことは一切していない、2026年時点の定番構成</b>です。</p>
+
+    <table class="data">
+      <tr><th>よくある心配</th><th>実際どうか</th><th>設計上の備え</th></tr>
+      <tr><td>古い技術で作って、すぐ時代遅れにならない？</td><td>データベース本体は<b>PostgreSQL</b>＝30年使われ銀行・政府機関でも採用される定番。流行り物ではなく「枯れていて壊れにくい」選択</td><td>定番ゆえに扱えるエンジニアが最も多く、引き継ぎに困らない</td></tr>
+      <tr><td>更新やセキュリティ対応を自分たちでできない</td><td>全て<b>管理サービス（マネージド）</b>で構成。基盤の更新・セキュリティパッチは Supabase / Google 側が実施</td><td>自前サーバを持たない＝「放置で危険になる」箇所を作らない</td></tr>
+      <tr><td>Supabase という会社に囲い込まれない？</td><td>値上げ・サービス終了のリスクはゼロではない</td><td>中身が<b>素のPostgreSQL</b>なので、データを丸ごと持ち出して他社・自前運用へ移行可能。「囲い込まれない」ことを条件に選定</td></tr>
+      <tr><td>AI（Gemini）はすぐ世代交代するのでは？</td><td>その通り。モデルの世代交代は年単位で起きる</td><td>AIは「取込関数の背後の<b>差し替え可能な部品</b>」。モデルが変わってもアプリ全体の作り直しにはならない</td></tr>
+      <tr><td>データが壊れたり、数字が合わなくならない？</td><td>在庫を直接書き換えず<b>増減の記録だけを積む方式</b>（会計の仕訳帳と同じ）。「なぜ合わないか」を必ず遡れる</td><td>これは在庫・お金など「数字が合わないと困る」業務の定石設計</td></tr>
+    </table>
+
+    <div class="two">
+      <div class="card" style="background:#edf7f0;border-color:#bfe2cd">
+        <h4 style="margin:0 0 6px;color:#256b41">規模との釣り合い</h4>
+        <p style="margin:0;font-size:13.5px">本アプリのデータ量は数年運用してもスマホ写真数十枚分程度。この規模なら技術的にはどんな構成でも動くため、<b>「運用の手間が最小・月額が最安・あとから乗り換え可能」</b>を基準に選定しています。</p>
+      </div>
+      <div class="card" style="background:#fbf3e3;border-color:#ecd9ad">
+        <h4 style="margin:0 0 6px;color:#8a5a00">本当のリスクは技術より運用</h4>
+        <p style="margin:0;font-size:13.5px">実運用のトラブルは技術選定より<b>「バックアップを取っているか」「誰がアクセスできるか」「現場が写真を送ってくれるか」</b>で起きます。本番移行時はバックアップ整備とアクセス権設定を必須項目とします。</p>
+      </div>
+    </div>
   </section>
 
   <div class="divider"><b>ここから先は技術者向け（委託エンジニア用）</b></div>
@@ -297,13 +362,12 @@ graph TD
       </div>
       <div class="card" style="background:#eef7ef;border-color:#bfe2cd">
         <h4 style="color:#256b41;margin:0 0 6px">QRコード＝「既知の個体を追跡する」</h4>
-        <ul style="margin:0;padding-left:18px;font-size:13px"><li>貼ってあるIDを読むだけ（一意・解釈不要）＝<b>移動・棚卸し</b></li><li>事前にQRを貼る手間が必要・<b>採用は未定（相談中）</b></li></ul>
+        <ul style="margin:0;padding-left:18px;font-size:13px"><li>貼ってあるIDを読むだけ（一意・解釈不要）＝<b>棚卸し</b></li><li>事前にQRを貼る手間が必要・<b>採用は未定（相談中）</b></li></ul>
       </div>
     </div>
     <pre class="mermaid">
 graph LR
   A["入庫：撮影しVLM(Gemini)が情報を取り込む"] -->|"このときQRを発行・貼付（採用時）"| B["銘柄マスタ＋個体ID"]
-  B --> C["移動：A店でスキャン→−A／B店で＋B（同一ID）"]
   B --> D["棚卸し：歩いてスキャン／未スキャン＝消えた本"]
   classDef core fill:#e9f5ee,stroke:#2e8b57,color:#1d6b43;
   class B core;
@@ -326,7 +390,7 @@ graph LR
           <li><b>同定が速く確実</b>（難読ラベルでも詰まらない）</li>
           <li><b>個体認証＝1本ずつ管理</b>。以下がまとめて効く：</li>
           <li>「どの1本/VTGか」が確定 → <b>POS出庫連携の最難所が解決</b></li>
-          <li>棚卸しが <b>「数える→かざすだけ」</b>／移動の取り違えゼロ</li>
+          <li>棚卸しが <b>「数える→かざすだけ」</b></li>
           <li><b>偽造防止・来歴</b>（高級帯では価値になる）</li>
           <li>安い・普通のスマホで読める（専用機不要）</li>
         </ul>
@@ -343,7 +407,7 @@ graph LR
         </ul>
       </div>
     </div>
-    <p class="note"><b>判断軸：</b>「貼る手間（新規・1回）」と「同定・棚卸し・移動・出庫で<b>毎日</b>削減される手間（継続便益）」の天秤。回転の多い帯ほどQRが勝ち、回らない超高級帯はQR不要。どちらが大きいかは <b>速度検証PoCの数字</b> で確定する。</p>
+    <p class="note"><b>判断軸：</b>「貼る手間（新規・1回）」と「同定・棚卸し・出庫で<b>毎日</b>削減される手間（継続便益）」の天秤。回転の多い帯ほどQRが勝ち、回らない超高級帯はQR不要。どちらが大きいかは <b>速度検証PoCの数字</b> で確定する。</p>
 
     <pre class="mermaid">
 graph TD
@@ -353,17 +417,17 @@ graph TD
   C --> E["QRを発行・貼付<br/>※価格帯ごとに方式を選択"]
   D --> E
   E --> F["2回目以降はQRを撮るだけ＝一瞬"]
-  F --> G["移動・棚卸し・出庫も高速＋個体管理"]
+  F --> G["棚卸し・出庫も高速＋個体管理"]
   classDef hot fill:#f6e9ee,stroke:#8a1c3d,color:#6f1531;
   class F,G hot;
     </pre>
     <table class="data">
       <tr><th>価格帯</th><th>同定方法（候補）</th><th>理由</th></tr>
-      <tr><td>普及〜中価格（大量）</td><td>QRコード（個体認証）</td><td>登録・棚卸し・移動が高速化。速度の恩恵が最大</td></tr>
+      <tr><td>普及〜中価格（大量）</td><td>QRコード（個体認証）</td><td>登録・棚卸しが高速化。速度の恩恵が最大</td></tr>
       <tr><td>高級（少量）</td><td>ネックタグ ／ ラベル撮影＋人の確認</td><td>ラベル・ガラスに触れない。本数が少なく丁寧に扱う</td></tr>
       <tr><td>超高級（例：100万円級）</td><td>物理タグなし・手動／写真</td><td>貼付の心理的抵抗。本数が極少で速度影響なし</td></tr>
     </table>
-    <p class="note">QRは「移動・棚卸しの追跡」だけでなく <b>「どの1本(VTG)か」(C-4)・偽造防止・来歴</b> にも効く＝<b>個体認証</b>の価値。ただし“おしゃれで読めるQR”は意匠と読取安定性がトレードオフ → 小さくPoC検証。貼付可否・上限金額・タイミングはご担当者に相談（確認事項 A-3）。</p>
+    <p class="note">QRは「棚卸しの追跡」だけでなく <b>「どの1本(VTG)か」(C-4)・偽造防止・来歴</b> にも効く＝<b>個体認証</b>の価値。ただし“おしゃれで読めるQR”は意匠と読取安定性がトレードオフ → 小さくPoC検証。貼付可否・上限金額・タイミングはご担当者に相談（確認事項 A-3）。</p>
   </section>
 
   <section id="db">
@@ -377,7 +441,6 @@ erDiagram
     wines ||--o{ delivery_lines : matched
     suppliers ||--o{ deliveries : from
     deliveries ||--o{ delivery_lines : has
-    inventory_events ||--o| inventory_events : transfer_pair
     wines {
         uuid id PK
         text name_canonical
@@ -399,7 +462,6 @@ erDiagram
         int qty_delta
         numeric unit_cost
         text source
-        uuid transfer_id
         timestamptz occurred_at
     }
     stores { uuid id PK
@@ -414,7 +476,7 @@ erDiagram
     suppliers { uuid id PK
         text name }
     </pre>
-    <p class="note"><code>type</code>=RECEIVE/SELL/TRANSFER/ADJUST、<code>source</code>=DELIVERY_NOTE/PHOTO_BOTTLE/PHOTO_SHELF/POS(ポスタス)/手入力。現在在庫ビュー <code>current_stock</code> は <code>WHERE qty&gt;0</code> で「ないものは出ない」。<br><b>在庫ワインリスト/棚マップはこのビューを表示するだけ＝実装は容易。</b>難しいのは表示でなく“入出庫を正確に積むこと”で、そこを本設計（イベント台帳＋POS/撮影＋四半期の棚卸し）が解く。</p>
+    <p class="note"><code>type</code>=RECEIVE/SELL/ADJUST、<code>source</code>=DELIVERY_NOTE/PHOTO_BOTTLE/PHOTO_SHELF/POS(ポスタス)/手入力。現在在庫ビュー <code>current_stock</code> は <code>WHERE qty&gt;0</code> で「ないものは出ない」。<br><b>在庫ワインリスト/棚マップはこのビューを表示するだけ＝実装は容易。</b>難しいのは表示でなく“入出庫を正確に積むこと”で、そこを本設計（イベント台帳＋POS/撮影＋四半期の棚卸し）が解く。</p>
   </section>
 
   <section id="seq">
@@ -453,24 +515,19 @@ sequenceDiagram
     FN->>DB: ラベル同定→SELL(−1, source=PHOTO_BOTTLE)
     </pre>
 
-    <h3>棚卸し（答え合わせ）／ 店舗間移動（v2・QR未定）</h3>
+    <h3>棚卸し（答え合わせ）</h3>
     <pre class="mermaid">
 sequenceDiagram
     participant SOM as 店長
     participant DB as コアDB
-    participant A as A店
-    participant B as B店
     SOM->>DB: 実数を確認（QR or 案内手動）→差分→ADJUSTで補正
     Note over DB: 差分＝入出庫漏れ/ロス検知。四半期で十分
-    A->>DB: 移動登録（暫定フォーム or QR）→ −N@A
-    B->>DB: 受領 → ＋N@B（同一 transfer_id）
-    Note over DB: 全社で純増減ゼロ／店舗別は原価が移動。QR採否は相談中
     </pre>
   </section>
 </main>
 
 <footer>
-  出典：<code>docs/01〜05</code>・<code>ADR-001/002</code>・<code>デザインガイドライン</code>・<code>確認事項書</code>。最新反映：<b>動くPoCを公開</b>（<code>ikkaku-sumi.github.io/wine-inventory-poc</code>）／在庫一覧に VTG・生産者・色・産地・味わい・売価・原価率を独立表示／<b>棚マップ追加</b>／デジタル庁デザインシステム準拠でUI刷新／AI=Gemini想定／POS=ポスタス第一候補(差し替え可)／QR未定。
+  出典：<code>docs/01〜05</code>・<code>ADR-001/002</code>・<code>デザインガイドライン</code>・<code>確認事項書</code>。最新反映：<b>動くPoCを公開</b>（<code>ikkaku-sumi.github.io/wine-inventory-poc</code>）／在庫一覧に VTG・生産者・色・産地・味わい・売価・原価率を独立表示／<b>棚マップ追加</b>／デジタル庁デザインシステム準拠でUI刷新／AI=Gemini想定／POS=ポスタス第一候補(差し替え可)／QR未定／店舗間移動は仕様から除外（2026-07変更）／想定ランニングコスト（最安〜上振れ）を追記・取込口はWeb/PWA標準に変更（複数社展開対応）。
   PoCは合成データ（機密データは含まない）。図はMermaid.js（初回表示にネット接続が必要）。
 </footer>
 
