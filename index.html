@@ -83,7 +83,6 @@
   .pill{display:inline-block;padding:2px 10px;border-radius:6px;font-size:13px;font-weight:700}
   .pill.RECEIVE{background:var(--green-bg);color:var(--green)}
   .pill.SELL{background:var(--red-bg);color:var(--red)}
-  .pill.TRANSFER{background:var(--info-bg);color:var(--info)}
   .pill.ADJUST{background:var(--amber-bg);color:var(--amber)}
   .chip{display:inline-block;padding:1px 8px;border-radius:4px;font-size:12px;
     background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line)}
@@ -188,7 +187,6 @@
       <button data-v="map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg>棚マップ</button>
       <button data-v="receive"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v10m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>入庫（検品）</button>
       <button data-v="sell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V11m0 0l-4 4m4-4l4 4M4 7V5a2 2 0 012-2h12a2 2 0 012 2v2"/></svg>出庫（販売）</button>
-      <button data-v="transfer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h11l-3-3m3 3l-3 3M17 17H6l3-3m-3 3l3 3"/></svg>店舗間移動</button>
       <button data-v="adjust"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5h6M9 5a1 1 0 00-1 1v0H6a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1V7a1 1 0 00-1-1h-2v0a1 1 0 00-1-1M9 14l2 2 4-4"/></svg>棚卸し</button>
       <div class="nav-group">記録・監査</div>
       <button data-v="ledger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12a1 1 0 011 1v14a1 1 0 01-1 1H7a1 1 0 01-1-1V4zM9 8h6M9 12h6M9 16h3"/></svg>イベント台帳</button>
@@ -263,7 +261,7 @@ function seedEvents(){
   return init.map((r,i)=>({
     id:"ev_seed_"+i, type:"ADJUST", wine_id:r[0], store_id:r[1], shelf_id:r[2],
     qty_delta:r[3], unit_cost:costOf(r[0]), source:"MANUAL",
-    occurred_at:new Date(t+i*60000).toISOString(), operator:"移行", note:"初期残高（棚卸し起点）", transfer_id:null
+    occurred_at:new Date(t+i*60000).toISOString(), operator:"移行", note:"初期残高（棚卸し起点）"
   }));
 }
 
@@ -276,6 +274,8 @@ function load(){
   let events=null;
   const raw = localStorage.getItem(LS_KEY);
   if(raw){ try{ events = JSON.parse(raw); }catch(e){} }
+  // 店舗間移動は仕様廃止（2026-07）。旧保存データに残るTRANSFERイベントは読み込み時に除去。
+  if(events) events = events.filter(e=>e.type!=="TRANSFER");
   DB = {stores:SEED.stores, shelves:SEED.shelves, wines:SEED.wines, events: events || seedEvents()};
   localStorage.removeItem("wine_poc_v1"); // 旧方式（フルDB保存）のキャッシュを破棄
   save();
@@ -453,7 +453,7 @@ function viewStock(){
   </div>
   <div class="sub">在庫数は保存していません。台帳イベントの合計 <code>Σ qty_delta</code> を都度算出した結果です（在庫&gt;0のみ表示）。</div>
   ${kpiBar()}
-  <div class="banner">この一覧は <b>入庫・出庫・移動・棚卸し</b> のどの操作をしても <b>即座に</b> 更新されます。手でセルを書き換える運用を廃止し、増減は必ずイベントとして残ります。</div>
+  <div class="banner">この一覧は <b>入庫・出庫・棚卸し</b> のどの操作をしても <b>即座に</b> 更新されます。手でセルを書き換える運用を廃止し、増減は必ずイベントとして残ります。</div>
   ${lowList.length?`<div class="banner" style="background:var(--amber-bg);border-color:#e6cf93;color:var(--amber)"><b>残りわずか ${lowList.length} 件</b>${critN?`（うち <b>ラスト1本 ${critN} 件</b>）`:""} — 高額ボトルの欠品前に補充判断を。下表で <span class="lowstock warn">残りわずか</span>／<span class="lowstock crit">ラスト1本</span> をハイライトしています。</div>`:""}
   <div class="card">
     <h2>現在在庫 <span class="tag">在庫&gt;0</span></h2>
@@ -568,32 +568,6 @@ function viewSell(){
   </div>`;
 }
 
-function viewTransfer(){
-  const cs=currentStock();
-  const opts=cs.map(r=>{const w=wineById(r.wine_id);
-    return `<option value="${r.wine_id}|${r.store_id}|${r.shelf_id}">${w.name} ${w.vintage||"NV"} ＠${storeById(r.store_id).name}/${shelfById(r.shelf_id)?.code} （在庫${r.qty}）</option>`}).join("");
-  const toStoreOpts=DB.stores.map(s=>`<option value="${s.id}">${s.name}</option>`).join("");
-  return `
-  <h1>店舗間移動 <span class="htag" style="color:var(--primary);font-weight:700">差別化ポイント</span></h1>
-  <div class="sub">A店→B店の移動を <b>−A店 / ＋B店 の対イベント</b>（同一 transfer_id）で記録。<b>片側だけ記録できない＝原価率・店舗PLが狂わない。</b>（汎用POS・既存アプリでは扱いにくい、当社の差別化点）</div>
-  ${kpiBar()}
-  <div class="card">
-    <h2>移動を記録 <span class="tag">TRANSFER ペア</span></h2>
-    <div class="grid g3">
-      <div><label class="f">移動するボトル（移動元）</label><select id="t_target">${opts||'<option>在庫なし</option>'}</select></div>
-      <div><label class="f">移動先 店舗</label><select id="t_to" onchange="syncShelves('t_to','t_shelf')">${toStoreOpts}</select></div>
-      <div><label class="f">移動先 棚</label><select id="t_shelf"></select></div>
-    </div>
-    <div class="grid g3" style="margin-top:16px">
-      <div><label class="f">本数</label><input id="t_qty" type="number" value="1" min="1"></div>
-    </div>
-    <div class="row-actions">
-      <button class="btn" onclick="doTransfer()">移動を記録（−A / +B）</button>
-      <span class="hint">2件の対イベントが同時に台帳へ。全社合計は±0、店舗別では原価が移動します。</span>
-    </div>
-  </div>`;
-}
-
 function viewAdjust(){
   const cs=currentStock();
   const opts=cs.map(r=>{const w=wineById(r.wine_id);
@@ -629,7 +603,7 @@ function viewLedger(){
       <td>${storeById(e.store_id).name}/${shelfById(e.shelf_id)?.code||"-"}</td>
       <td class="num" style="color:${e.qty_delta>0?'var(--green)':'var(--red)'};font-weight:700">${sign}</td>
       <td><span class="chip">${srcLabel(e.source)}</span></td>
-      <td class="hint">${e.note||""}${e.transfer_id?` <span class="chip">対:${e.transfer_id.slice(-4)}</span>`:""}</td>
+      <td class="hint">${e.note||""}</td>
     </tr>`;
   }).join("");
   return `
@@ -643,14 +617,13 @@ function viewLedger(){
     <div class="legend">
       <span><span class="pill RECEIVE">入庫</span> +N 仕入</span>
       <span><span class="pill SELL">出庫</span> −N 販売</span>
-      <span><span class="pill TRANSFER">移動</span> −A/+B 対</span>
       <span><span class="pill ADJUST">調整</span> ± 棚卸差分</span>
     </div>
   </div>`;
 }
 
 /* ---------- labels ---------- */
-const typeLabel=t=>({RECEIVE:"入庫",SELL:"出庫",TRANSFER:"移動",ADJUST:"調整"})[t]||t;
+const typeLabel=t=>({RECEIVE:"入庫",SELL:"出庫",ADJUST:"調整"})[t]||t;
 const srcLabel=s=>({DELIVERY_NOTE:"納品書",PHOTO_BOTTLE:"ボトル撮影",PHOTO_SHELF:"棚撮影",POS:"POS",MANUAL:"手入力"})[s]||s;
 function fmtTime(iso){const d=new Date(iso);const p=n=>String(n).padStart(2,"0");return `${d.getMonth()+1}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;}
 
@@ -687,7 +660,7 @@ function doReceive(){
   if(qty<1) return toast("本数を確認してください");
   append({id:nextId("ev"),type:"RECEIVE",wine_id:wid,store_id:sid,shelf_id:shid,
     qty_delta:qty,unit_cost:cost,source:val("r_src"),supplier:supplier,occurred_at:new Date().toISOString(),
-    operator:"検品担当",note:`検品確定（仕入元：${supplier}）`,transfer_id:null});
+    operator:"検品担当",note:`検品確定（仕入元：${supplier}）`});
   toast(`入庫 +${qty} を台帳に追記しました`);
   go("stock");
 }
@@ -699,26 +672,9 @@ function doSell(){
   if(qty>cur) return toast(`在庫(${cur})を超えています`);
   append({id:nextId("ev"),type:"SELL",wine_id:wid,store_id:sid,shelf_id:shid,
     qty_delta:-qty,unit_cost:null,source:val("s_src"),occurred_at:new Date().toISOString(),
-    operator:val("s_op"),note:"販売",transfer_id:null});
+    operator:val("s_op"),note:"販売"});
   toast(`出庫 −${qty} を記録しました`);
   go("stock");
-}
-function doTransfer(){
-  const [wid,fromSid,fromShid]=val("t_target").split("|");
-  const toSid=val("t_to"), toShid=val("t_shelf"), qty=+val("t_qty");
-  const cur=stockOf(wid,fromSid);
-  if(qty<1) return toast("本数を確認してください");
-  if(toSid===fromSid) return toast("移動元と移動先が同じ店舗です");
-  if(qty>cur) return toast(`在庫(${cur})を超えています`);
-  const tid="tr_"+DB.events.length;
-  const now=new Date().toISOString();
-  const w=wineById(wid);
-  append({id:nextId("ev"),type:"TRANSFER",wine_id:wid,store_id:fromSid,shelf_id:fromShid,
-    qty_delta:-qty,unit_cost:w.cost,source:"MANUAL",occurred_at:now,operator:"店長",note:`${storeById(toSid).name}へ移動`,transfer_id:tid});
-  append({id:nextId("ev"),type:"TRANSFER",wine_id:wid,store_id:toSid,shelf_id:toShid,
-    qty_delta:qty,unit_cost:w.cost,source:"MANUAL",occurred_at:now,operator:"店長",note:`${storeById(fromSid).name}から移動`,transfer_id:tid});
-  toast(`移動を記録：−${qty}@${storeById(fromSid).short} / +${qty}@${storeById(toSid).short}`);
-  go("ledger");
 }
 function doAdjust(){
   const sel=document.getElementById("a_target");
@@ -728,7 +684,7 @@ function doAdjust(){
   if(d===0) return toast("差分がありません");
   append({id:nextId("ev"),type:"ADJUST",wine_id:wid,store_id:sid,shelf_id:shid,
     qty_delta:d,unit_cost:wineById(wid).cost,source:"MANUAL",occurred_at:new Date().toISOString(),
-    operator:"棚卸担当",note:`棚卸差分 ${d>0?'+':''}${d}`,transfer_id:null});
+    operator:"棚卸担当",note:`棚卸差分 ${d>0?'+':''}${d}`});
   toast(`調整(${d>0?'+':''}${d}) を記録しました`);
   go("stock");
 }
@@ -741,10 +697,9 @@ function go(v){ VIEW=v; render(); }
 function render(){
   document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===VIEW));
   const m=document.getElementById("main");
-  m.innerHTML=({dash:viewDash,stock:viewStock,map:viewMap,receive:viewReceive,sell:viewSell,transfer:viewTransfer,adjust:viewAdjust,ledger:viewLedger})[VIEW]();
+  m.innerHTML=({dash:viewDash,stock:viewStock,map:viewMap,receive:viewReceive,sell:viewSell,adjust:viewAdjust,ledger:viewLedger})[VIEW]();
   // post-render syncs
   if(VIEW==="receive"){syncShelves("r_store","r_shelf");syncSupplier();}
-  if(VIEW==="transfer"){syncShelves("t_to","t_shelf");}
   if(VIEW==="adjust"){syncAdjust();}
 }
 document.getElementById("nav").addEventListener("click",e=>{const b=e.target.closest("button");if(b)go(b.dataset.v);});
