@@ -176,6 +176,11 @@
   .jitem .cap{display:block;margin-top:8px;line-height:1.4}
   .jitem .cap .n{font-size:12px;font-weight:700;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .jitem .cap .s{font-size:10.5px;color:var(--muted);display:block;margin-top:1px}
+  .jitem .jwrap{display:block;position:relative}
+  .jitem .jmark{position:absolute;right:6px;bottom:6px;width:22px;height:22px;border-radius:50%;background:var(--wine);color:#fff;
+    display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+  .jitem .jmark svg{width:12px;height:12px}
+  .jitem.js .cap .n{color:var(--wine)}
   .viewtoggle{all:unset;cursor:pointer;display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;color:var(--ink-2);
     border:1px solid var(--line-2);border-radius:8px;padding:5px 10px;background:var(--card)}
   .viewtoggle svg{width:14px;height:14px}
@@ -377,7 +382,7 @@ const PLACES = ["自宅","Restaurant Sépal","Bistro Ourse","場所を記録し�
 
 const S = {
   phase:0, tab:"records", task:null, overlay:null, entry:"discover",
-  shelfJacket:false, shelfChip:"すべて", highlight:null, justSaved:null,
+  shelfJacket:false, recJacket:false, shelfChip:"すべて", highlight:null, justSaved:null,
   rec:null, placePicker:false, correctPick:"w03", following:true, venue:"sepal",
 };
 
@@ -496,12 +501,21 @@ function viewRecords(){
         ${e.memo ? `<div class="memo">${esc(e.memo)}</div>` : ""}
       </div>${e.rate ? `<span class="ratechip ${e.rate === "好み" ? "like" : "mid"}">${e.rate}</span>` : ""}</div>`;
   }).join("");
+  /* ジャケット表示: 飲んだラベルが並ぶ「自分の壁」。記録の見返りを視覚的に返す */
+  const cells = list.map((e) => {
+    const w = W[e.w];
+    return `<button class="jitem ${S.justSaved === e ? "js" : ""}" onclick="openWine('${e.w}','record')">
+      <span class="jwrap">${labelArt(e.w)}${e.mtai ? `<span class="jmark">${I.book}</span>` : ""}</span>
+      <span class="cap"><span class="n">${esc(w.flat)}</span>
+      <span class="s">${e.d}${e.place ? `・${esc(e.place)}` : ""}</span></span></button>`;
+  }).join("");
   return `${S.phase === 2
       ? `<div class="synced">${I.phone}アカウントに保存中・連携店では自動で記録されます</div>`
       : `<div class="synced">${I.phone}この端末に保存中</div>`}
     ${reunion}${prof}
-    <div class="sec">最近の記録<span class="r">${n}件</span></div>
-    ${rows}
+    <div class="sec">飲んだワイン<span class="r">${n}件
+      <button class="viewtoggle" onclick="S.recJacket=!S.recJacket;render()">${S.recJacket ? I.list + "リスト" : I.grid + "ジャケット"}</button></span></div>
+    ${S.recJacket ? `<div class="jgrid">${cells}</div>` : rows}
     <div class="hint">下の「撮る」から、いつでも次の一本を残せます。${S.phase === 2 ? "<br>連携店で飲んだ分は、撮らなくても記録に残ります。" : ""}</div>`;
 }
 
@@ -863,6 +877,8 @@ if (h === "shelf") { S.phase = 2; S.tab = "discover"; S.shelfView = true; S.venu
 if (h === "shelft1") { S.phase = 2; S.tab = "discover"; S.shelfView = true; S.venue = "ourse"; }
 if (h === "shelfjacket") { S.phase = 2; S.tab = "discover"; S.shelfView = true; S.venue = "sepal"; S.shelfJacket = true; }
 if (h === "connected") { S.phase = 2; S.tab = "records"; }
+if (h === "recjacket") S.recJacket = true;
+if (h === "connectedjacket") { S.phase = 2; S.tab = "records"; S.recJacket = true; }
 if (h === "wine") { S.phase = 2; S.overlay = "w03"; }
 if (h === "wine0") S.overlay = "w11";
 if (h === "camera") S.task = "camera";
