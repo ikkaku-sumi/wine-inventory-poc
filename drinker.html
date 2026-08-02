@@ -352,10 +352,14 @@ const STOCKS = [
   {v:"sepal", w:"w08", state:"low", unit:"ボトル", n:2, upd:"12分前更新"},
   {v:"sepal", w:"w04", state:"ok", unit:"グラス", upd:"12分前更新"},
   {v:"noir", w:"w03", state:"low", unit:"ボトル", n:2, upd:"12分前更新"},
+  {v:"noir", w:"w04", state:"ok", unit:"グラス", upd:"30分前更新"},
+  {v:"noir", w:"par", state:"ok", unit:"ボトル", upd:"30分前更新"},
   {v:"sepal", w:"w02", state:"stale", unit:"ボトル", n:3, upd:"8月1日 14:20更新"},
 ];
 const ARRIVALS = [
   {v:"ourse", w:"w08", at:"8月1日に入荷しました"},
+  {v:"ourse", w:"par", at:"7月29日に入荷しました"},
+  {v:"ourse", w:"w11", at:"7月22日に入荷しました"},
   {v:"sepal", w:"par", at:"7月30日に入荷しました"},
 ];
 const EVID = [{v:"sepal", w:"w01", at:"ここで飲んだ人がいます（3日前）"}];
@@ -365,6 +369,8 @@ let CELLAR = [
   {d:"8月2日", place:"夕食", w:"w03", src:"camera", rate:"好み", mtai:true, memo:"", aromas:[]},
   {d:"7月26日", place:"自宅", w:"par", src:"camera", rate:"ふつう", mtai:true, memo:"はじめてのアルバリン。よく冷やして正解。", aromas:["柑橘","塩気"]},
 ];
+/* 連携店では抜栓+会計の紐付けで自動的に記録が残る（Phase 2 のみ・原則2「魔法がかかる場所」） */
+const AUTO_REC = {d:"7月28日", place:"Bistro Ourse", w:"w08", src:"auto", rate:"好み", mtai:true, memo:"", aromas:[]};
 const AROMAS = ["赤い果実","黒い果実","花","スパイス","樽","土"];
 const SLIDERS = [["軽やか","力強い"],["なめらか","渋みがしっかり"],["辛口","甘口"],["酸がおだやか","酸がしっかり"]];
 const PLACES = ["自宅","Restaurant Sépal","Bistro Ourse","場所を記録しない"];
@@ -372,7 +378,7 @@ const PLACES = ["自宅","Restaurant Sépal","Bistro Ourse","場所を記録し�
 const S = {
   phase:0, tab:"records", task:null, overlay:null, entry:"discover",
   shelfJacket:false, shelfChip:"すべて", highlight:null, justSaved:null,
-  rec:null, placePicker:false, correctPick:"w03", following:true,
+  rec:null, placePicker:false, correctPick:"w03", following:true, venue:"sepal",
 };
 
 /* ================= helpers ================= */
@@ -457,7 +463,16 @@ function viewRecords(){
       <p>ラベルを撮るだけで、あとから思い出せます。<br>登録も位置情報も要りません。</p>
       <button class="btn fill" onclick="startCamera()"><span class="ic">${I.cam}</span>ワインを撮って記録する</button>
     </div>`;
-  const n = CELLAR.length;
+  const list = S.phase === 2 ? [AUTO_REC, ...CELLAR] : CELLAR;
+  const n = list.length;
+  /* 再会: また飲みたいに入れた1本が、今どこかで開いている（記録→発見の環） */
+  const reunion = S.phase === 2 ? `<div class="card tap" style="background:var(--open-bg);border-color:#eed9bd" onclick="openWine('w03','records')">
+    <div style="display:flex;gap:11px;align-items:flex-start">
+      <span style="color:var(--open);flex:none;margin-top:1px">${I.glass}</span>
+      <div style="flex:1;min-width:0;font-size:13px;line-height:1.75">
+        「また飲みたい」の <b>Barolo Brunate</b> が、今夜 <b>Restaurant Sépal</b> で開いています
+        <div class="meta" style="margin-top:3px">18:40に抜栓・徒歩8分</div></div>
+      <div class="chev">›</div></div></div>` : "";
   const prof = `<div class="card prof">
     <div class="h"><b>あなたの好み</b></div>
     <div class="meta" style="margin-top:2px">${n}件の記録から集計</div>
@@ -469,7 +484,7 @@ function viewRecords(){
       <div class="meta">うまく言葉にできないときは、この画面をお店の方に見せてください</div>
       <button class="btn sm" style="margin-top:10px" onclick="S.task='showcase';render()">お店の方に見せる</button>
     </div></div>`;
-  const rows = CELLAR.map((e, i) => {
+  const rows = list.map((e, i) => {
     const w = W[e.w];
     return `<div class="entry ${S.justSaved === e ? "justsaved" : ""}" onclick="openWine('${e.w}','record')">
       <div class="th">${labelArt(e.w)}</div>
@@ -481,11 +496,13 @@ function viewRecords(){
         ${e.memo ? `<div class="memo">${esc(e.memo)}</div>` : ""}
       </div>${e.rate ? `<span class="ratechip ${e.rate === "好み" ? "like" : "mid"}">${e.rate}</span>` : ""}</div>`;
   }).join("");
-  return `<div class="synced">${I.phone}この端末に保存中</div>
-    ${prof}
+  return `${S.phase === 2
+      ? `<div class="synced">${I.phone}アカウントに保存中・連携店では自動で記録されます</div>`
+      : `<div class="synced">${I.phone}この端末に保存中</div>`}
+    ${reunion}${prof}
     <div class="sec">最近の記録<span class="r">${n}件</span></div>
     ${rows}
-    <div class="hint">下の「撮る」から、いつでも次の一本を残せます。</div>`;
+    <div class="hint">下の「撮る」から、いつでも次の一本を残せます。${S.phase === 2 ? "<br>連携店で飲んだ分は、撮らなくても記録に残ります。" : ""}</div>`;
 }
 
 /* ================= 探す ================= */
@@ -508,7 +525,7 @@ function viewDiscover(){
         <span class="vn">${esc(v.name)}</span>
         <span class="meta"><span class="open">${v.open}</span></span>
         <span class="meta">${v.walk}</span>
-        <div class="evrow">${opens ? `<span class="ev opennow">${I.glass}今夜 ${opens}本 開いています</span>` : v.tier === "T1" ? `<span class="ev arrival">${I.box}8月1日に入荷</span>` : `<span class="ev stock">在庫を更新中</span>`}</div>
+        <div class="evrow">${opens ? `<span class="ev opennow">${I.glass}今夜 ${opens}本 開いています</span>` : ""}${v.tier === "T1" ? `<span class="ev arrival">${I.box}入荷情報のみ</span>` : `<span class="ev stock">在庫を更新中</span>`}</div>
       </div><div class="chev">›</div></div>`;
   }).join("");
   return `<div class="search" onclick="toast('デモのため検索は省略しています')">${I.search}ワイン・造り手・店を検索</div>
@@ -551,10 +568,12 @@ function viewHome(){
 
 /* ================= 店の棚 ================= */
 function viewShelf(){
-  const v = VEN.sepal;
-  const inService = () => true;
-  const openIds = OPENS.filter((o) => o.v === "sepal").map((o) => o.w);
-  const rest = SHELF.filter((id) => !openIds.includes(id));
+  const vk = S.venue ?? "sepal";
+  const v = VEN[vk];
+  const openIds = OPENS.filter((o) => o.v === vk).map((o) => o.w);
+  /* その店に根拠のあるワインだけを並べる（T0/T1の店は在庫を主張しない） */
+  const rest = [...new Set([...STOCKS, ...ARRIVALS, ...EVID].filter((x) => x.v === vk).map((x) => x.w))]
+    .filter((id) => !openIds.includes(id));
   const wrow = (id, isOpen) => {
     const w = W[id];
     return `<div class="wrow ${isOpen ? "opencard" : ""} ${S.highlight === id ? "hl" : ""}" onclick="openWine('${id}','shelf')">
@@ -563,14 +582,14 @@ function viewShelf(){
         ${S.highlight === id ? `<div class="hltag">入荷のお知らせ</div>` : ""}
         <div class="wname" style="font-size:16px">${esc(w.flat)}</div>
         <div class="wsub">${w.vt ?? "NV"} / ${esc(w.prod)}</div>
-        <div class="evrow">${evidenceFor(id, "sepal")}</div>
+        <div class="evrow">${evidenceFor(id, vk)}</div>
       </div><div class="chev">›</div></div>`;
   };
   const jitem = (id) => {
     const w = W[id];
     return `<button class="jitem" onclick="openWine('${id}','shelf')">${labelArt(id)}
       <span class="cap"><span class="n">${esc(w.flat)}</span><span class="s">${w.vt ?? "NV"} / ${esc(w.prod)}</span>
-      <span class="evrow" style="margin-top:5px">${evidenceFor(id, "sepal")}</span></span></button>`;
+      <span class="evrow" style="margin-top:5px">${evidenceFor(id, vk)}</span></span></button>`;
   };
   const body = S.shelfJacket
     ? `<div class="jgrid">${openIds.concat(rest).map(jitem).join("")}</div>`
@@ -587,7 +606,7 @@ function viewShelf(){
         <button class="tchip" onclick="toast('デモのため予約は省略しています')">予約</button>
         <button class="tchip ${S.following ? "on" : ""}" onclick="S.following=!S.following;render();toast(S.following?'フォローしました':'フォローを外しました')">${S.following ? "✓ フォロー中" : "＋ フォロー"}</button>
       </div>
-      <div class="meta" style="margin:10px 2px 0">この店はPOS連携で在庫を更新しています（T2）</div>
+      <div class="meta" style="margin:10px 2px 0">${v.tier === "T2" ? "この店はPOS連携で在庫を更新しています（T2）" : v.tier === "T1" ? "この店は仕入れ連動で入荷を更新しています。現在の在庫は表示していません（T1）" : "この店は連携していません。取扱いの実績のみ表示しています（T0）"}</div>
       ${S.shelfJacket ? `<div class="sec">ワイン<span class="r"><button class="viewtoggle" onclick="S.shelfJacket=false;render()">${I.list}一覧</button></span></div>` : ""}
     </div>${body}
     <div class="hint">売り切れは自動で表示から消えます。</div>`;
@@ -787,8 +806,7 @@ function saveRecord(){
 }
 function openWine(id, entry){ S.overlay = id; S.entry = entry ?? "discover"; render(); }
 function goShelf(v, hl){
-  if (v !== "sepal") { toast("デモではRestaurant Sépalの棚のみ用意しています"); return; }
-  S.phase = 2; S.tab = "discover"; S.shelfView = true; S.overlay = null; S.highlight = hl ?? null; render();
+  S.phase = 2; S.tab = "discover"; S.shelfView = true; S.venue = v; S.overlay = null; S.highlight = hl ?? null; render();
 }
 function setTab(t){ S.tab = t; S.overlay = null; S.shelfView = false; render(); }
 function togglePhase(){
@@ -841,8 +859,10 @@ const h = location.hash.replace("#", "");
 if (h === "empty") CELLAR = [];
 if (h === "discover") S.tab = "discover";
 if (h === "p2") { S.phase = 2; S.tab = "home"; }
-if (h === "shelf") { S.phase = 2; S.tab = "discover"; S.shelfView = true; }
-if (h === "shelfjacket") { S.phase = 2; S.tab = "discover"; S.shelfView = true; S.shelfJacket = true; }
+if (h === "shelf") { S.phase = 2; S.tab = "discover"; S.shelfView = true; S.venue = "sepal"; }
+if (h === "shelft1") { S.phase = 2; S.tab = "discover"; S.shelfView = true; S.venue = "ourse"; }
+if (h === "shelfjacket") { S.phase = 2; S.tab = "discover"; S.shelfView = true; S.venue = "sepal"; S.shelfJacket = true; }
+if (h === "connected") { S.phase = 2; S.tab = "records"; }
 if (h === "wine") { S.phase = 2; S.overlay = "w03"; }
 if (h === "wine0") S.overlay = "w11";
 if (h === "camera") S.task = "camera";
