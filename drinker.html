@@ -104,7 +104,7 @@
   .evrow{display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap}
 
   /* ============ label art (200x267固定→transform縮小) ============ */
-  .fitwrap{position:relative;width:100%}
+  .fitwrap{position:relative;width:100%;aspect-ratio:200/267}
   .fitin{position:absolute;top:0;left:0;width:200px;transform-origin:top left}
   .lab{width:200px;height:267px;border-radius:8px;border:1px solid rgba(0,0,0,.12);box-shadow:0 2px 8px rgba(30,20,15,.14);
     display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
@@ -171,11 +171,14 @@
   .wrow .th{width:52px;flex:none}
   .wrow .bd{flex:1;min-width:0}
   .hltag{display:inline-block;font-size:10px;font-weight:700;color:var(--wine);margin-bottom:4px}
-  .jgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px 12px;margin-top:4px}
+  .jgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px 12px;margin-top:4px;align-items:start}
   .jitem{all:unset;cursor:pointer;display:block;min-width:0}
-  .jitem .cap{display:block;margin-top:8px;line-height:1.4}
-  .jitem .cap .n{font-size:12px;font-weight:700;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-  .jitem .cap .s{font-size:10.5px;color:var(--muted);display:block;margin-top:1px}
+  .jitem .cap{display:block;margin-top:9px;line-height:1.45}
+  .jitem .cap .n{font-size:12.5px;font-weight:700;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.9em}
+  .jitem .cap .s{font-size:10.5px;color:var(--muted);display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .jitem .jev{display:flex;align-items:center;gap:6px;margin-top:5px;white-space:nowrap;overflow:hidden}
+  .jitem .jev .ev{flex:none}
+  .jitem .jev .fresh{overflow:hidden;text-overflow:ellipsis}
   .jitem .jwrap{display:block;position:relative}
   .jitem .jmark{position:absolute;right:6px;bottom:6px;width:22px;height:22px;border-radius:50%;background:var(--wine);color:#fff;
     display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.25)}
@@ -399,7 +402,6 @@ function labelArt(id){
 function fitLabels(){
   document.querySelectorAll(".fitwrap").forEach((el) => {
     const s = el.clientWidth / 200;
-    el.style.height = `${Math.round(267 * s)}px`;
     el.firstElementChild.style.transform = `scale(${s})`;
   });
 }
@@ -515,8 +517,7 @@ function viewRecords(){
     ${reunion}${prof}
     <div class="sec">飲んだワイン<span class="r">${n}件
       <button class="viewtoggle" onclick="S.recJacket=!S.recJacket;render()">${S.recJacket ? I.list + "リスト" : I.grid + "ジャケット"}</button></span></div>
-    ${S.recJacket ? `<div class="jgrid">${cells}</div>` : rows}
-    <div class="hint">下の「撮る」から、いつでも次の一本を残せます。${S.phase === 2 ? "<br>連携店で飲んだ分は、撮らなくても記録に残ります。" : ""}</div>`;
+    ${S.recJacket ? `<div class="jgrid">${cells}</div>` : rows}`;
 }
 
 /* ================= 探す ================= */
@@ -576,8 +577,7 @@ function viewHome(){
         </div><div class="chev">›</div></div></div>`;
   }).join("");
   return `<div class="sec" style="margin-top:8px">今夜開いています</div>${opens}
-    <div class="sec">フォロー中の店に入荷しました</div>${arr}
-    <div class="hint">抜栓・入荷は、店が在庫を記録すると自動で届きます。</div>`;
+    <div class="sec">フォロー中の店に入荷しました</div>${arr}`;
 }
 
 /* ================= 店の棚 ================= */
@@ -602,8 +602,8 @@ function viewShelf(){
   const jitem = (id) => {
     const w = W[id];
     return `<button class="jitem" onclick="openWine('${id}','shelf')">${labelArt(id)}
-      <span class="cap"><span class="n">${esc(w.flat)}</span><span class="s">${w.vt ?? "NV"} / ${esc(w.prod)}</span>
-      <span class="evrow" style="margin-top:5px">${evidenceFor(id, vk)}</span></span></button>`;
+      <span class="cap"><span class="n">${esc(w.flat)}</span>
+      <span class="jev">${evidenceFor(id, vk)}</span></span></button>`;
   };
   const body = S.shelfJacket
     ? `<div class="jgrid">${openIds.concat(rest).map(jitem).join("")}</div>`
@@ -620,10 +620,9 @@ function viewShelf(){
         <button class="tchip" onclick="toast('デモのため予約は省略しています')">予約</button>
         <button class="tchip ${S.following ? "on" : ""}" onclick="S.following=!S.following;render();toast(S.following?'フォローしました':'フォローを外しました')">${S.following ? "✓ フォロー中" : "＋ フォロー"}</button>
       </div>
-      <div class="meta" style="margin:10px 2px 0">${v.tier === "T2" ? "この店はPOS連携で在庫を更新しています（T2）" : v.tier === "T1" ? "この店は仕入れ連動で入荷を更新しています。現在の在庫は表示していません（T1）" : "この店は連携していません。取扱いの実績のみ表示しています（T0）"}</div>
+      ${v.tier === "T2" ? "" : `<div class="meta" style="margin:10px 2px 0">入荷情報のみ・現在の在庫は表示していません</div>`}
       ${S.shelfJacket ? `<div class="sec">ワイン<span class="r"><button class="viewtoggle" onclick="S.shelfJacket=false;render()">${I.list}一覧</button></span></div>` : ""}
-    </div>${body}
-    <div class="hint">売り切れは自動で表示から消えます。</div>`;
+    </div>${body}`;
 }
 
 /* ================= ワイン公開ページ ================= */
@@ -731,7 +730,7 @@ function taskCorrect(){
         <div class="radio"></div></div>`).join("")}
       <div style="text-align:center;margin:14px 0 18px"><button class="tlink" onclick="toast('デモのため手入力は省略しています')">見つからない場合は手入力</button></div>
       <button class="btn fill" onclick="applyCorrect()">このワインに訂正</button>
-      <div class="note">評価やメモは消えません</div>
+      
     </div></div>`;
 }
 
