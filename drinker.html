@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Cellar Note — 体験デモ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --wine:#8b1028; --wine-weak:#f8e9ed; --wine-bd:#e8d2d8;
+    --ink:#241f1d; --ink-2:#4a4340; --muted:#756d68;
+    --bg:#f7f4ee; --card:#fffdfa; --surface-muted:#f4efe8; --line:#e2d8cf; --line-2:#d6ccbf;
+    --green:#277a47; --green-bg:#edf7f0; --amber:#94651f; --amber-bg:#fbf3e4;
+    --open:#a8571b; --open-bg:#fbeedd;
+    --r-card:12px;
+    --sans:"Noto Sans JP",-apple-system,"Hiragino Kaku Gothic ProN",sans-serif;
+    --serif:"Noto Serif JP","Hiragino Mincho ProN",serif;
+    --latin:"Cormorant Garamond","Noto Serif JP",serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:#ebe9e5;color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.7;
+    -webkit-font-smoothing:antialiased;display:flex;flex-direction:column;align-items:center;padding:32px 16px 56px}
+  .intro{max-width:560px;text-align:center;margin-bottom:20px}
+  .intro .eyebrow{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--wine);
+    background:var(--wine-weak);border:1px solid var(--wine-bd);padding:4px 12px;border-radius:99px;margin-bottom:12px}
+  .intro h1{font-size:23px;font-weight:700;margin:0 0 8px;line-height:1.45}
+  .intro p{font-size:14px;color:var(--ink-2);margin:0}
+  .phone{width:400px;max-width:100%;background:#17181a;border-radius:42px;padding:12px;box-shadow:0 18px 50px rgba(24,20,22,.28)}
+  .scr{background:var(--bg);border-radius:32px;overflow:hidden;height:800px;display:flex;flex-direction:column;position:relative}
+  .foot{max-width:560px;text-align:center;margin-top:18px;font-size:12px;color:#8a8481;line-height:1.9}
+
+  /* ============ chrome ============ */
+  .top{padding:15px 18px 6px;display:flex;align-items:center;gap:10px;min-height:52px}
+  .top .brand{font-family:var(--latin);font-weight:600;font-size:22px;letter-spacing:.02em}
+  .top .ttl{font-size:18px;font-weight:700}
+  .top .sp{margin-left:auto;display:flex;align-items:center;gap:11px}
+  .icbtn{all:unset;cursor:pointer;color:var(--ink-2);display:flex;position:relative;padding:2px}
+  .icbtn svg{width:21px;height:21px}
+  .icbtn .nb{position:absolute;top:-3px;right:-4px;background:var(--wine);color:#fff;font-size:8.5px;font-weight:700;
+    width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+  .area{all:unset;cursor:pointer;font-size:12px;font-weight:600;border:1px solid var(--line-2);border-radius:99px;padding:5px 12px;color:var(--ink-2);background:var(--card)}
+  .phasebtn{all:unset;cursor:pointer;font-size:9.5px;font-weight:700;letter-spacing:.04em;color:#8d8580;background:#e8e2d9;padding:3px 8px;border-radius:5px}
+  .view{flex:1;overflow-y:auto;padding:0 16px 104px}
+
+  /* bottom bar with center camera action */
+  .tabs{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:flex-end;background:rgba(255,255,255,.97);
+    -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-top:1px solid var(--line);
+    padding:6px 6px calc(10px + env(safe-area-inset-bottom));z-index:3}
+  .tab{all:unset;cursor:pointer;flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;font-weight:600;color:var(--muted);padding:6px 0}
+  .tab svg{width:22px;height:22px}
+  .tab.on{color:var(--wine)}
+  .camtab{all:unset;cursor:pointer;flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10.5px;font-weight:700;color:var(--wine);padding:0 0 6px}
+  .camtab .ring{width:52px;height:52px;border-radius:50%;background:var(--wine);color:#fff;display:flex;align-items:center;justify-content:center;
+    margin-top:-20px;box-shadow:0 6px 16px rgba(139,16,40,.36);border:3px solid var(--card)}
+  .camtab .ring svg{width:24px;height:24px}
+
+  .sec{font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--ink-2);margin:18px 2px 9px;display:flex;align-items:baseline}
+  .sec .r{margin-left:auto;font-weight:600;font-size:11.5px;color:var(--muted);display:flex;gap:11px;align-items:center}
+  .hint{text-align:center;font-size:11.5px;color:var(--muted);padding:12px 12px 18px;line-height:1.85}
+  .synced{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);margin:2px 2px 12px}
+  .synced svg{width:13px;height:13px}
+
+  /* ============ shared ============ */
+  .card{background:var(--card);border:1px solid rgba(40,25,20,.06);border-radius:var(--r-card);padding:15px;margin-bottom:12px;
+    box-shadow:0 1px 2px rgba(40,25,20,.04),0 5px 16px rgba(40,25,20,.04)}
+  .card.tap{cursor:pointer}
+  .btn{all:unset;cursor:pointer;font-size:14px;font-weight:700;color:var(--wine);border:1.5px solid var(--wine);
+    padding:13px 16px;border-radius:10px;text-align:center;display:block;width:100%;box-sizing:border-box}
+  .btn.fill{background:var(--wine);color:#fff;border-color:var(--wine)}
+  .btn.sm{font-size:13px;padding:10px 14px}
+  .btn .ic{display:inline-flex;vertical-align:-3px;margin-right:7px}
+  .btn .ic svg{width:17px;height:17px}
+  .tlink{all:unset;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--wine)}
+  .chiprow{display:flex;flex-wrap:wrap;gap:7px}
+  .tchip{all:unset;cursor:pointer;font-size:12px;font-weight:600;border:1px solid var(--line-2);border-radius:99px;padding:5.5px 13px;color:var(--ink-2);background:var(--card);white-space:nowrap}
+  .tchip.on{background:var(--wine);border-color:var(--wine);color:#fff}
+  .tchip.gr.on{background:var(--green);border-color:var(--green);color:#fff}
+  .search{display:flex;align-items:center;gap:9px;background:var(--card);border:1px solid var(--line);border-radius:11px;
+    padding:11px 14px;color:var(--muted);font-size:13px;margin:10px 0;cursor:pointer}
+  .search svg{width:16px;height:16px;flex:none}
+  .seg{display:flex;border:1.5px solid var(--wine);border-radius:10px;overflow:hidden;margin:2px 0 10px}
+  .seg button{all:unset;cursor:pointer;flex:1;text-align:center;font-size:13px;font-weight:700;color:var(--wine);padding:9px 0}
+  .seg button.on{background:var(--wine);color:#fff}
+  .wname{font-family:var(--latin);font-size:17.5px;font-weight:600;line-height:1.3}
+  .wsub{font-size:12px;color:var(--ink-2);margin-top:2px}
+  .meta{font-size:11.5px;color:var(--muted)}
+  .chev{flex:none;color:var(--line-2);font-size:22px;align-self:center;line-height:1}
+  .open{color:var(--green);font-weight:700}
+  .opt{font-size:10px;font-weight:700;color:var(--muted);border:1px solid var(--line-2);border-radius:5px;padding:1.5px 7px;margin-left:auto}
+
+  /* 根拠バッジ: 確度の異なる主張を同じ見た目にしない（仕様§3.1/§3.2） */
+  .ev{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;border-radius:6px;padding:3px 8px}
+  .ev svg{width:12px;height:12px}
+  .ev.stock{background:var(--green-bg);color:var(--green)}
+  .ev.low{background:var(--amber-bg);color:var(--amber)}
+  .ev.unknown{background:var(--surface-muted);color:var(--ink-2);border:1px solid var(--line)}
+  .ev.stale{background:var(--amber-bg);color:var(--amber);border:1px dashed #d8bd85}
+  .ev.arrival{background:var(--surface-muted);color:var(--ink-2)}
+  .ev.evid{background:var(--surface-muted);color:var(--muted)}
+  .ev.opennow{background:var(--open-bg);color:var(--open)}
+  .fresh{font-size:10.5px;color:var(--muted)}
+  .evrow{display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap}
+
+  /* ============ label art (200x267固定→transform縮小) ============ */
+  .fitwrap{position:relative;width:100%}
+  .fitin{position:absolute;top:0;left:0;width:200px;transform-origin:top left}
+  .lab{width:200px;height:267px;border-radius:8px;border:1px solid rgba(0,0,0,.12);box-shadow:0 2px 8px rgba(30,20,15,.14);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+    padding:20px 14px 16px;background:#fbf7ee;position:relative;overflow:hidden}
+  .lab .prod{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#5a4f42;font-family:var(--latin);line-height:1.3}
+  .lab .nm{font-family:var(--latin);font-weight:600;line-height:1.2;margin:12px 0;font-size:21px;color:#241d16}
+  .lab .vt{font-family:var(--latin);font-size:11px;letter-spacing:.16em;color:#6a5c4c}
+  .lab .rule{width:64px;height:1px;background:#b9a88e;margin-bottom:10px}
+  .lab .band{position:absolute;top:0;left:0;right:0;height:18px}
+  .band.red{background:#7b1f2b}.band.white{background:#d9c46a}.band.spark{background:#c8b98d}
+  .lab.s-classic{background:linear-gradient(#fdfaf2,#f3ecd9)}
+  .lab.s-classic::before,.lab.s-cream::before{content:"";position:absolute;inset:26px 12px 12px;border:1px solid #c9b48a;border-radius:4px}
+  .lab.s-script .nm{font-style:italic;font-size:23px}
+  .lab.s-dark{background:#2b2226}
+  .lab.s-dark .prod{color:#c9b6a2}.lab.s-dark .nm{color:#f2e7d8}.lab.s-dark .vt{color:#b6a48f}.lab.s-dark .rule{background:#7a6a58}
+  .lab.s-gold{background:linear-gradient(160deg,#fbf6e8,#f1e3bd)}
+  .lab.s-mint{background:linear-gradient(#f6faf3,#e8f0e2)}
+  .lab.s-jp .nm{font-family:var(--serif);font-size:18px;font-weight:600}
+  .vphoto{border-radius:10px;overflow:hidden;position:relative;flex:none;display:flex;align-items:flex-end}
+  .vphoto span{font-family:var(--latin);color:rgba(255,255,255,.85);font-size:13px;padding:6px 9px;letter-spacing:.06em}
+  .vp-h{background:linear-gradient(140deg,#3a2b25,#6b4a35 45%,#2a1e1a)}
+  .vp-a{background:linear-gradient(140deg,#25303a,#5a6a5a 50%,#1d2422)}
+  .vp-n{background:linear-gradient(140deg,#40342a,#8a6a3a 50%,#2c2118)}
+
+  /* ============ 記録タブ ============ */
+  .startcard{background:var(--card);border:1px solid rgba(40,25,20,.06);border-radius:var(--r-card);padding:22px 18px;text-align:center;margin:8px 0 14px;
+    box-shadow:0 1px 2px rgba(40,25,20,.04),0 5px 16px rgba(40,25,20,.04)}
+  .startcard .bigic{width:56px;height:56px;border-radius:50%;background:var(--wine-weak);color:var(--wine);display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
+  .startcard .bigic svg{width:26px;height:26px}
+  .startcard h2{font-size:17px;font-weight:700;margin:0 0 5px}
+  .startcard p{font-size:12.5px;color:var(--muted);margin:0 0 16px;line-height:1.75}
+  .prof .h{display:flex;align-items:baseline;gap:8px}
+  .prof .h b{font-size:13.5px}
+  .prof .chiprow{margin-top:10px}
+  .prof .tchip{cursor:default}
+  .prof-cta{border-top:1px solid var(--line);margin-top:13px;padding-top:12px}
+  .entry{display:flex;gap:13px;background:var(--card);border:1px solid rgba(40,25,20,.06);border-radius:var(--r-card);padding:12px 13px;margin-bottom:10px;cursor:pointer;
+    box-shadow:0 1px 2px rgba(40,25,20,.04)}
+  .entry.justsaved{background:var(--wine-weak);border-color:var(--wine-bd)}
+  .entry .th{width:48px;flex:none}
+  .entry .bd{flex:1;min-width:0}
+  .entry .when{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .entry .wname{font-size:15px;margin-top:2px}
+  .entry .mtai{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--wine);margin-top:5px}
+  .entry .mtai svg{width:13px;height:13px}
+  .entry .memo{font-size:12.5px;color:var(--ink-2);margin-top:7px;padding:1px 0 1px 12px;border-left:2px solid var(--line-2);line-height:1.65;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .ratechip{margin-left:auto;flex:none;align-self:flex-start;font-size:11px;font-weight:700;border-radius:99px;padding:3px 11px}
+  .ratechip.like{background:var(--wine-weak);color:var(--wine)}
+  .ratechip.mid{background:#efece7;color:var(--ink-2)}
+  .badge{font-size:9.5px;font-weight:700;border-radius:99px;padding:2px 8px}
+  .badge.auto{background:var(--wine-weak);color:var(--wine)}
+  .badge.hand{background:var(--green-bg);color:var(--green)}
+
+  /* ============ 発見系 ============ */
+  .vcard{display:flex;gap:14px;align-items:stretch}
+  .vcard .vphoto{width:96px;min-height:96px}
+  .vcard .bd{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .vcard .vn{font-size:14.5px;font-weight:700}
+  .wrow{display:flex;gap:13px;background:var(--card);border:1px solid rgba(40,25,20,.06);border-radius:var(--r-card);padding:12px 13px;margin-bottom:10px;cursor:pointer;
+    box-shadow:0 1px 2px rgba(40,25,20,.04);align-items:center}
+  .wrow.hl{background:var(--wine-weak);border-color:var(--wine-bd)}
+  .wrow.opencard{background:var(--open-bg);border-color:#eed9bd}
+  .wrow .th{width:52px;flex:none}
+  .wrow .bd{flex:1;min-width:0}
+  .hltag{display:inline-block;font-size:10px;font-weight:700;color:var(--wine);margin-bottom:4px}
+  .jgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px 12px;margin-top:4px}
+  .jitem{all:unset;cursor:pointer;display:block;min-width:0}
+  .jitem .cap{display:block;margin-top:8px;line-height:1.4}
+  .jitem .cap .n{font-size:12px;font-weight:700;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .jitem .cap .s{font-size:10.5px;color:var(--muted);display:block;margin-top:1px}
+  .viewtoggle{all:unset;cursor:pointer;display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;color:var(--ink-2);
+    border:1px solid var(--line-2);border-radius:8px;padding:5px 10px;background:var(--card)}
+  .viewtoggle svg{width:14px;height:14px}
+  .empty{text-align:center;padding:22px 10px 8px}
+  .empty .art{width:120px;height:74px;margin:0 auto 18px;border-radius:10px;background:var(--surface-muted);display:flex;align-items:center;justify-content:center;color:#c3b8ab}
+  .empty .art svg{width:44px;height:44px}
+  .empty h2{font-size:17px;font-weight:700;margin:0 0 8px;line-height:1.5}
+  .empty p{font-size:13px;color:var(--muted);margin:0 0 20px;line-height:1.8}
+  .empty .btn{margin-bottom:10px}
+
+  /* ============ overlay / task ============ */
+  .ov{position:absolute;inset:0;background:var(--bg);display:flex;flex-direction:column;z-index:5}
+  .ov .bar{display:flex;align-items:center;padding:13px 16px;position:relative;flex:none}
+  .ov .bar .c{position:absolute;left:0;right:0;text-align:center;font-size:15.5px;font-weight:700;pointer-events:none}
+  .back{all:unset;cursor:pointer;display:flex;align-items:center;gap:3px;font-size:13.5px;font-weight:700;color:var(--wine);z-index:1}
+  .back svg{width:18px;height:18px}
+  .ov .bar .sp{margin-left:auto;display:flex;gap:12px;align-items:center;z-index:1}
+  .ov .body{flex:1;overflow-y:auto;padding:0 18px 34px}
+  .detail-lab{width:104px;margin:4px auto 14px}
+  .d-name{font-family:var(--latin);font-size:23px;font-weight:600;text-align:center;line-height:1.25}
+  .d-sub{text-align:center;font-size:13px;color:var(--ink-2);margin-top:4px}
+  .pills{display:flex;gap:7px;justify-content:center;margin:11px 0 4px;flex-wrap:wrap}
+  .pill{font-size:11.5px;font-weight:600;border:1px solid var(--line-2);border-radius:99px;padding:4px 12px;color:var(--ink-2);background:var(--card)}
+  .pill.type{background:var(--wine);border-color:var(--wine);color:#fff}
+  .avrow{display:flex;gap:12px;align-items:center;background:var(--card);border:1px solid rgba(40,25,20,.06);border-radius:var(--r-card);padding:11px 13px;margin-bottom:9px;cursor:pointer;box-shadow:0 1px 2px rgba(40,25,20,.04)}
+  .avrow .vphoto{width:64px;min-height:58px}
+  .avrow .bd{flex:1;min-width:0}
+  .avrow .vn{font-size:13.5px;font-weight:700}
+  .box{background:var(--card);border:1px solid rgba(40,25,20,.06);border-radius:var(--r-card);padding:13px 15px;font-size:13px;margin-bottom:10px;box-shadow:0 1px 2px rgba(40,25,20,.04)}
+  .box .tt{font-size:11.5px;font-weight:700;letter-spacing:.04em;color:var(--wine);margin-bottom:6px}
+  .box .src{font-size:10px;color:var(--muted);margin-top:8px;padding-top:7px;border-top:1px solid var(--line)}
+  .cta{margin-top:16px}
+
+  /* 記録フォーム */
+  .wsum{display:flex;gap:14px;align-items:center;background:var(--card);border:1px solid rgba(40,25,20,.06);border-radius:var(--r-card);padding:13px 14px;box-shadow:0 1px 2px rgba(40,25,20,.04)}
+  .wsum .th{width:56px;flex:none}
+  .fixline{display:flex;align-items:center;justify-content:center;gap:7px;margin:11px 0 4px}
+  .fixline svg{width:14px;height:14px;color:var(--wine)}
+  .flabel{display:flex;align-items:center;font-size:13.5px;font-weight:700;margin:18px 2px 9px}
+  .seg3{display:flex;border:1px solid var(--line-2);border-radius:10px;overflow:hidden;background:var(--card)}
+  .seg3 button{all:unset;cursor:pointer;flex:1;text-align:center;font-size:13px;font-weight:600;color:var(--ink-2);padding:12px 0;border-left:1px solid var(--line-2)}
+  .seg3 button:first-child{border-left:none}
+  .seg3 button.on{background:var(--wine-weak);color:var(--wine);font-weight:700}
+  .togglerow{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid rgba(40,25,20,.06);border-radius:var(--r-card);padding:13px 15px;margin-top:12px;font-size:13.5px;font-weight:700;cursor:pointer}
+  .togglerow svg{width:17px;height:17px;color:var(--ink-2)}
+  .sw{margin-left:auto;width:46px;height:27px;border-radius:99px;background:#d9d2c8;position:relative;transition:background .15s;flex:none}
+  .sw::after{content:"";position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;background:#fff;transition:left .15s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .sw.on{background:var(--wine)}
+  .sw.on::after{left:22px}
+  .memoarea{background:var(--card);border:1px solid var(--line-2);border-radius:var(--r-card);padding:13px 15px;font-size:13px;color:var(--muted);min-height:72px}
+  .detailrow{display:flex;align-items:center;gap:9px;background:var(--card);border:1px solid rgba(40,25,20,.06);border-radius:var(--r-card);padding:13px 15px;margin-top:12px;font-size:13.5px;font-weight:700;color:var(--wine);cursor:pointer}
+  .detailrow svg{width:17px;height:17px}
+  .detailrow .chev{margin-left:auto}
+  .note{text-align:center;font-size:11.5px;color:var(--muted);margin:13px 0 10px;line-height:1.8}
+  .sliderbox{background:var(--card);border:1px solid rgba(40,25,20,.06);border-radius:var(--r-card);padding:6px 15px 12px}
+  .srow{display:flex;align-items:center;gap:11px;padding:9px 0}
+  .srow .l,.srow .r{font-size:11px;line-height:1.5;color:var(--ink-2);flex:none;width:82px}
+  .srow .r{text-align:right}
+  .srow input[type=range]{flex:1;accent-color:var(--wine);height:24px}
+  .srow.unset input[type=range]{accent-color:#cfc7bd;opacity:.65}
+  .srow.unset .l,.srow.unset .r{color:var(--muted)}
+  .sfoot{display:flex;align-items:center;gap:10px;border-top:1px solid var(--line);margin-top:6px;padding-top:9px;font-size:11px;color:var(--muted)}
+  .sfoot .tlink{margin-left:auto;font-size:11.5px}
+
+  /* 訂正 */
+  .cand{display:flex;gap:12px;align-items:center;background:var(--card);border:1px solid rgba(40,25,20,.06);border-radius:var(--r-card);padding:12px 14px;margin-bottom:10px;cursor:pointer;box-shadow:0 1px 2px rgba(40,25,20,.04)}
+  .cand.on{border-color:var(--wine);background:var(--wine-weak)}
+  .cand .th{width:44px;flex:none}
+  .cand .bd{flex:1;min-width:0}
+  .radio{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line-2);flex:none;display:flex;align-items:center;justify-content:center}
+  .cand.on .radio{border-color:var(--wine)}
+  .cand.on .radio::after{content:"";width:11px;height:11px;border-radius:50%;background:var(--wine)}
+
+  /* カメラ */
+  .cam{position:absolute;inset:0;background:#141114;z-index:6;display:flex;flex-direction:column;color:#eee}
+  .cam .bar{display:flex;align-items:center;padding:14px 18px;position:relative;flex:none}
+  .cam .bar .c{position:absolute;left:0;right:0;text-align:center;font-size:15px;font-weight:700}
+  .cam .x{all:unset;cursor:pointer;font-size:20px;z-index:1;line-height:1}
+  .cam .vf{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 24px}
+  .cam .frame{width:100%;max-width:230px;aspect-ratio:3/4;border-radius:14px;position:relative;
+    background:linear-gradient(165deg,#4a382c,#241a15 60%,#120d0b);display:flex;align-items:center;justify-content:center}
+  .cam .frame .corner{position:absolute;width:26px;height:26px;border:2.5px solid rgba(255,255,255,.85)}
+  .cam .frame .c1{top:12px;left:12px;border-right:none;border-bottom:none}
+  .cam .frame .c2{top:12px;right:12px;border-left:none;border-bottom:none}
+  .cam .frame .c3{bottom:12px;left:12px;border-right:none;border-top:none}
+  .cam .frame .c4{bottom:12px;right:12px;border-left:none;border-top:none}
+  .cam .frame .inlab{width:56%;font-size:9px}
+  .cam .guide{font-size:12.5px;color:rgba(255,255,255,.8);text-align:center;margin-top:20px;line-height:1.8}
+  .cam .ctl{padding:16px 0 22px;display:flex;justify-content:center;flex:none}
+  .shutter{all:unset;cursor:pointer;width:66px;height:66px;border-radius:50%;background:#fff;border:5px solid rgba(255,255,255,.32)}
+  .cam .lib{all:unset;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin:0 18px calc(20px + env(safe-area-inset-bottom));
+    padding:12px 0;border:1px solid rgba(255,255,255,.3);border-radius:10px;font-size:13px;font-weight:600;color:#eee}
+  .cam .lib svg{width:16px;height:16px}
+  .reading{display:flex;flex-direction:column;align-items:center;gap:15px;justify-content:center;flex:1;font-size:14px}
+  .spin{width:34px;height:34px;border-radius:50%;border:3px solid rgba(255,255,255,.25);border-top-color:#fff;animation:sp 1s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  /* お店の方に見せる */
+  .showcase{position:absolute;inset:0;background:var(--bg);z-index:9;display:flex;flex-direction:column;padding:0 22px 24px;overflow-y:auto}
+  .showcase .bar{display:flex;align-items:center;padding:15px 0 4px;position:relative}
+  .showcase .bar .c{position:absolute;left:0;right:0;text-align:center;font-size:14px;font-weight:700}
+  .showcase .x{all:unset;cursor:pointer;font-size:20px;color:var(--ink-2);z-index:1;line-height:1}
+  .showcase h2{font-family:var(--serif);font-size:26px;font-weight:600;text-align:center;margin:14px 0 2px}
+  .showcase .cnt{text-align:center;font-size:12.5px;color:var(--muted);margin-bottom:22px}
+  .showcase .blk{margin-bottom:20px}
+  .showcase .blk .t{font-size:12.5px;font-weight:700;color:var(--ink-2);margin-bottom:9px}
+  .showcase .big{background:var(--card);border:1px solid var(--line);border-radius:10px;text-align:center;
+    font-family:var(--serif);font-size:30px;font-weight:600;color:var(--wine);padding:16px 0}
+  .showcase .wchip{display:inline-block;font-size:15px;font-weight:600;border:1px solid var(--wine-bd);color:var(--wine);
+    background:var(--card);border-radius:99px;padding:8px 16px;margin:0 7px 8px 0}
+  .showcase .wl{display:flex;gap:12px;align-items:center;border-top:1px solid var(--line);padding:11px 0}
+  .showcase .wl .th{width:42px;flex:none}
+  .showcase .wl .n{font-family:var(--latin);font-size:17px;font-weight:600;line-height:1.3}
+  .showcase .wl .s{font-size:12px;color:var(--muted)}
+  .showcase .fin{text-align:center;font-size:11.5px;color:var(--muted);margin-top:18px}
+
+  .toast{position:absolute;left:50%;bottom:120px;transform:translateX(-50%);background:#2c2426;color:#fff;font-size:12.5px;font-weight:600;
+    padding:9px 18px;border-radius:99px;z-index:20;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:86%;text-align:center}
+  .toast.show{opacity:1}
+
+  @media (max-width:540px){
+    body{padding:0;background:var(--bg)}
+    .intro,.foot{display:none}
+    .phone{width:100%;background:none;border-radius:0;padding:0;box-shadow:none}
+    .scr{height:100dvh;border-radius:0}
+  }
+</style>
+</head>
+<body>
+  <div class="intro">
+    <div class="eyebrow">Cellar Note 体験デモ</div>
+    <h1>飲んだ一本を撮って残す。いつか、また出会う。</h1>
+    <p>店との連携がなくても使えるワイン記録アプリの試作です。<b>スマホで開くと実物のように触れます。</b>データはすべて架空です。</p>
+  </div>
+  <div class="phone"><div class="scr" id="scr"></div></div>
+  <div class="foot">合成データのデモです。店舗・在庫・価格・人物は架空です。<br>右上の「P0 / P2」で、連携店ゼロの状態と、連携店が増えた状態を切り替えられます。</div>
+
+<script>
+"use strict";
+/* ================= data ================= */
+const W = {
+  w03:{name:"Barolo\nBrunate", flat:"Barolo Brunate", prod:"G. Rinaldi", vt:2017, type:"赤", region:"Piemonte, Italy", style:"s-dark", band:"red",
+    maker:"ピエモンテを代表する造り手。伝統的なバローロで知られます。", pair:"牛肉の煮込み、熟成したチーズ", src:"インポーター提供（掲載許諾済み）"},
+  w01:{name:"Chambolle-Musigny\nLes Amoureuses", flat:"Chambolle-Musigny Les Amoureuses", prod:"G. Roumier", vt:2018, type:"赤", region:"Bourgogne, France", style:"s-cream", band:"red",
+    maker:"ルーミエ家が5代にわたり守る「恋人たち」の区画。", pair:"鴨のロースト、熟成コンテ", src:"インポーター提供（掲載許諾済み）"},
+  w08:{name:"Sancerre\nBlanc", flat:"Sancerre Blanc", prod:"Vacheron", vt:2021, type:"白", region:"Loire, France", style:"s-cream", band:"white",
+    maker:"サンセールの名門ヴァシュロン。火打石のミネラルが持ち味。", pair:"シェーブルチーズ、牡蠣のフリット", src:"ソムリエ執筆"},
+  w04:{name:"Champagne\nBlanc de Blancs", flat:"Champagne Grand Cru Blanc de Blancs", prod:"Pierre Péters", vt:null, type:"泡", region:"Champagne, France", style:"s-classic", band:"spark",
+    maker:"メニル・シュール・オジェのシャルドネだけで造る繊細な泡。", pair:"生牡蠣、白身魚のフリット", src:"インポーター提供（掲載許諾済み）"},
+  w11:{name:"甲州\nシュール・リー", flat:"Koshu Sur Lie", prod:"グレイス", vt:2022, type:"白", region:"山梨, Japan", style:"s-jp", band:"white",
+    maker:null, pair:null, src:null},   /* 未収録＝無理に文章を作らない（設計書§16-10原則3） */
+  par:{name:"Pardevalles\nAlbarín", flat:"Pardevalles Albarín", prod:"Familia Alonso", vt:null, type:"白", region:"León, Spain", style:"s-script", band:"white",
+    maker:"標高800mの石だらけの畑で土着品種アルバリンを育てる造り手。", pair:"牡蠣、白身魚のカルパッチョ", src:"ソムリエ執筆"},
+  w02:{name:"Bâtard-Montrachet\nGrand Cru", flat:"Bâtard-Montrachet Grand Cru", prod:"Dom. Leflaive", vt:2019, type:"白", region:"Bourgogne, France", style:"s-gold", band:"white",
+    maker:"ビオディナミの先駆者ルフレーヴが手がける特級畑。", pair:"オマール海老、鶏のクリーム煮", src:"インポーター提供（掲載許諾済み）"},
+};
+/* 訂正の候補（同名別生産者＝実在するが違う、という誤りの型） */
+const CANDIDATES = [
+  {id:"w03", prod:"G. Rinaldi", vt:2017},
+  {id:"c_ceretto", flat:"Barolo Brunate", prod:"Ceretto", vt:2017, style:"s-cream", band:"red", name:"Barolo\nBrunate"},
+  {id:"c_giacosa", flat:"Barolo Brunate", prod:"Bruno Giacosa", vt:2017, style:"s-classic", band:"red", name:"Barolo\nBrunate"},
+];
+const VEN = {
+  sepal:{name:"Restaurant Sépal", tier:"T2", photo:"vp-h", mono:"S", walk:"徒歩8分", open:"営業中・23:00まで"},
+  ourse:{name:"Bistro Ourse", tier:"T1", photo:"vp-a", mono:"O", walk:"徒歩12分", open:"営業中・22:30まで"},
+  noir:{name:"Wine Stand Noir", tier:"T2", photo:"vp-n", mono:"N", walk:"徒歩18分", open:"営業中・24:00まで"},
+};
+/* 根拠は種類ごとに分けて持つ（合成して「在庫あり」にしない・仕様§2.2/§6.2） */
+const OPENS = [
+  {v:"sepal", w:"w03", at:"18:40に抜栓"},
+  {v:"noir", w:"w01", at:"19:10に抜栓"},
+];
+const STOCKS = [
+  {v:"sepal", w:"w08", state:"low", unit:"ボトル", n:2, upd:"12分前更新"},
+  {v:"sepal", w:"w04", state:"ok", unit:"グラス", upd:"12分前更新"},
+  {v:"noir", w:"w03", state:"low", unit:"ボトル", n:2, upd:"12分前更新"},
+  {v:"sepal", w:"w02", state:"stale", unit:"ボトル", n:3, upd:"8月1日 14:20更新"},
+];
+const ARRIVALS = [
+  {v:"ourse", w:"w08", at:"8月1日に入荷しました"},
+  {v:"sepal", w:"par", at:"7月30日に入荷しました"},
+];
+const EVID = [{v:"sepal", w:"w01", at:"ここで飲んだ人がいます（3日前）"}];
+const SHELF = ["w03","w08","w04","w01","w02","w11"];
+
+let CELLAR = [
+  {d:"8月2日", place:"夕食", w:"w03", src:"camera", rate:"好み", mtai:true, memo:"", aromas:[]},
+  {d:"7月26日", place:"自宅", w:"par", src:"camera", rate:"ふつう", mtai:true, memo:"はじめてのアルバリン。よく冷やして正解。", aromas:["柑橘","塩気"]},
+];
+const AROMAS = ["赤い果実","黒い果実","花","スパイス","樽","土"];
+const SLIDERS = [["軽やか","力強い"],["なめらか","渋みがしっかり"],["辛口","甘口"],["酸がおだやか","酸がしっかり"]];
+const PLACES = ["自宅","Restaurant Sépal","Bistro Ourse","場所を記録しない"];
+
+const S = {
+  phase:0, tab:"records", task:null, overlay:null, entry:"discover",
+  shelfJacket:false, shelfChip:"すべて", highlight:null, justSaved:null,
+  rec:null, placePicker:false, correctPick:"w03", following:true,
+};
+
+/* ================= helpers ================= */
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;");
+const wineOf = (id) => W[id] ?? CANDIDATES.find((c) => c.id === id);
+function labelArt(id){
+  const w = wineOf(id);
+  return `<div class="fitwrap"><div class="fitin"><div class="lab ${w.style}"><span class="band ${w.band}"></span>
+    <div class="prod">${esc(w.prod)}</div><div class="nm">${esc(w.name).replace(/\n/g,"<br>")}</div>
+    <div class="rule"></div><div class="vt">${w.vt ?? "NV"}</div></div></div></div>`;
+}
+function fitLabels(){
+  document.querySelectorAll(".fitwrap").forEach((el) => {
+    const s = el.clientWidth / 200;
+    el.style.height = `${Math.round(267 * s)}px`;
+    el.firstElementChild.style.transform = `scale(${s})`;
+  });
+}
+const I = {
+  note:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12a1 1 0 011 1v16a1 1 0 01-1 1H6a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>',
+  search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>',
+  home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9 21v-6h6v6"/></svg>',
+  cam:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>',
+  book:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V4a1 1 0 011-1h12a1 1 0 011 1z"/></svg>',
+  bell:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>',
+  phone:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18.5h2"/></svg>',
+  pencil:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4L8 20H4v-4z"/></svg>',
+  clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  glass:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10l-1 6a4 4 0 01-8 0z"/><path d="M12 13v7M8.5 20h7"/></svg>',
+  box:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg>',
+  people:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5 21c0-3.6 3.1-6 7-6s7 2.4 7 6"/></svg>',
+  grid:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
+  list:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>',
+  slider:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 8h10M18 8h2M4 16h2M10 16h10"/><circle cx="16" cy="8" r="2"/><circle cx="7" cy="16" r="2"/></svg>',
+  photo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.8"/><path d="M21 16l-5-5-9 9"/></svg>',
+  cellarart:'<svg viewBox="0 0 64 40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="2" y="6" width="22" height="30" rx="2"/><path d="M2 16h22M2 26h22M13 6v30"/><path d="M34 36V16a4 4 0 012-3.4V6h6v6.6A4 4 0 0144 16v20z"/><path d="M52 12h9l-1 6a3.5 3.5 0 01-7 0z"/><path d="M56.5 21v9M53 30h7"/></svg>',
+};
+
+/* 根拠バッジ（種類ごとに別コンポーネント・文言を合成しない） */
+const evStock = (s) => {
+  const lab = s.state === "low" ? `${s.unit} 残り${s.n}本`
+    : s.state === "stale" ? "情報が古い可能性"
+    : s.state === "unknown" ? "在庫確認中"
+    : `${s.unit} ${s.unit === "グラス" ? "提供あり" : "在庫あり"}`;
+  const cls = s.state === "ok" ? "stock" : s.state;
+  return `<span class="ev ${cls}">${lab}</span><span class="fresh">${s.upd}</span>`;
+};
+const evOpen = (o) => `<span class="ev opennow">${I.glass}今夜開いています</span><span class="fresh">${o.at}</span>`;
+const evArrival = (a) => `<span class="ev arrival">${I.box}${a.at}</span>`;
+const evEvidence = (e) => `<span class="ev evid">${I.people}${e.at}</span>`;
+
+const openOf = (w, v) => OPENS.find((o) => o.w === w && (!v || o.v === v));
+const stockOf = (w, v) => STOCKS.find((s) => s.w === w && (!v || s.v === v));
+const arrivalOf = (w, v) => ARRIVALS.find((a) => a.w === w && (!v || a.v === v));
+const evidOf = (w, v) => EVID.find((e) => e.w === w && (!v || e.v === v));
+/* 表示決定ルール: OPEN > 鮮度内在庫 > 入荷 > 実績（仕様§6.2） */
+function evidenceFor(w, v){
+  const o = openOf(w, v); if (o) return evOpen(o);
+  const s = stockOf(w, v); if (s && s.state !== "stale") return evStock(s);
+  const a = arrivalOf(w, v); if (a) return evArrival(a);
+  if (s) return evStock(s);
+  const e = evidOf(w, v); if (e) return evEvidence(e);
+  return "";
+}
+const venuesFor = (w) => {
+  const ids = new Set();
+  OPENS.filter((x) => x.w === w).forEach((x) => ids.add(x.v));
+  STOCKS.filter((x) => x.w === w).forEach((x) => ids.add(x.v));
+  ARRIVALS.filter((x) => x.w === w).forEach((x) => ids.add(x.v));
+  EVID.filter((x) => x.w === w).forEach((x) => ids.add(x.v));
+  return [...ids];
+};
+
+/* ================= 記録タブ（Phase 0 起動画面） ================= */
+function viewRecords(){
+  if (CELLAR.length === 0) return `
+    <div class="synced">${I.phone}この端末に保存中</div>
+    <div class="startcard">
+      <div class="bigic">${I.cam}</div>
+      <h2>最初の一本を残してみましょう</h2>
+      <p>ラベルを撮るだけで、あとから思い出せます。<br>登録も位置情報も要りません。</p>
+      <button class="btn fill" onclick="startCamera()"><span class="ic">${I.cam}</span>ワインを撮って記録する</button>
+    </div>`;
+  const n = CELLAR.length;
+  const prof = `<div class="card prof">
+    <div class="h"><b>あなたの好み</b></div>
+    <div class="meta" style="margin-top:2px">${n}件の記録から集計</div>
+    ${n < 3
+      ? `<div style="font-size:13px;margin-top:9px">記録が増えると好みの傾向が見えてきます</div>`
+      : `${n < 5 ? `<div style="font-size:12.5px;margin-top:9px">いまのところ、こんな傾向です</div>` : ""}
+         <div class="chiprow"><span class="tchip">赤ワイン</span><span class="tchip">酸がしっかり</span><span class="tchip">フランス</span></div>`}
+    <div class="prof-cta">
+      <div class="meta">うまく言葉にできないときは、この画面をお店の方に見せてください</div>
+      <button class="btn sm" style="margin-top:10px" onclick="S.task='showcase';render()">お店の方に見せる</button>
+    </div></div>`;
+  const rows = CELLAR.map((e, i) => {
+    const w = W[e.w];
+    return `<div class="entry ${S.justSaved === e ? "justsaved" : ""}" onclick="openWine('${e.w}','record')">
+      <div class="th">${labelArt(e.w)}</div>
+      <div class="bd">
+        <div class="when">${e.d}${e.place ? `・${esc(e.place)}` : ""}${e.src === "auto" ? `<span class="badge auto">自動記録</span>` : ""}</div>
+        <div class="wname">${esc(w.flat)}</div>
+        <div class="wsub">${w.vt ?? "NV"} / ${esc(w.prod)}</div>
+        ${e.mtai ? `<div class="mtai">${I.book}また飲みたい</div>` : ""}
+        ${e.memo ? `<div class="memo">${esc(e.memo)}</div>` : ""}
+      </div>${e.rate ? `<span class="ratechip ${e.rate === "好み" ? "like" : "mid"}">${e.rate}</span>` : ""}</div>`;
+  }).join("");
+  return `<div class="synced">${I.phone}この端末に保存中</div>
+    ${prof}
+    <div class="sec">最近の記録<span class="r">${n}件</span></div>
+    ${rows}
+    <div class="hint">下の「撮る」から、いつでも次の一本を残せます。</div>`;
+}
+
+/* ================= 探す ================= */
+function viewDiscover(){
+  if (S.phase === 0) return `
+    <div class="search" onclick="toast('デモのため検索は省略しています')">${I.search}ワイン・造り手・店を検索</div>
+    <div class="empty">
+      <div class="art">${I.cellarart}</div>
+      <h2>このエリアにはまだ<br>連携店がありません</h2>
+      <p>ワインの記録は、店との連携がなくても使えます</p>
+      <button class="btn fill" onclick="startCamera()"><span class="ic">${I.cam}</span>記録から始める</button>
+      <button class="btn" onclick="toast('通知の希望を受け付けました（デモ）。ここで初めてエリアを選びます')">連携店ができたら知らせる</button>
+    </div>`;
+  const rows = ["sepal","ourse","noir"].map((k) => {
+    const v = VEN[k];
+    const opens = OPENS.filter((o) => o.v === k).length;
+    return `<div class="card tap vcard" onclick="goShelf('${k}')">
+      <div class="vphoto ${v.photo}"><span>${v.mono}</span></div>
+      <div class="bd">
+        <span class="vn">${esc(v.name)}</span>
+        <span class="meta"><span class="open">${v.open}</span></span>
+        <span class="meta">${v.walk}</span>
+        <div class="evrow">${opens ? `<span class="ev opennow">${I.glass}今夜 ${opens}本 開いています</span>` : v.tier === "T1" ? `<span class="ev arrival">${I.box}8月1日に入荷</span>` : `<span class="ev stock">在庫を更新中</span>`}</div>
+      </div><div class="chev">›</div></div>`;
+  }).join("");
+  return `<div class="search" onclick="toast('デモのため検索は省略しています')">${I.search}ワイン・造り手・店を検索</div>
+    <div class="seg"><button class="on">一覧</button><button onclick="toast('デモのため地図は省略しています')">地図</button></div>
+    <div class="chiprow"><button class="tchip gr on">営業中</button><button class="tchip" onclick="toast('デモのため絞り込みは省略しています')">今夜開いています</button><button class="tchip" onclick="toast('デモのため絞り込みは省略しています')">20分以内</button></div>
+    <div class="sec" style="margin-top:14px">3件<span class="r">距離順 ▾</span></div>
+    ${rows}`;
+}
+
+/* ================= ホーム（Phase 2） ================= */
+function viewHome(){
+  const opens = OPENS.map((o) => {
+    const w = W[o.w], v = VEN[o.v];
+    return `<div class="card tap" onclick="openWine('${o.w}','home')">
+      <div style="display:flex;gap:14px;align-items:center">
+        <div style="width:70px;flex:none">${labelArt(o.w)}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700">${esc(v.name)}</div>
+          <div class="wname" style="font-size:16px;margin-top:2px">${esc(w.flat)}</div>
+          <div class="wsub">${w.vt ?? "NV"} / ${esc(w.prod)}</div>
+          <div class="evrow">${evOpen(o)}</div>
+        </div><div class="chev">›</div></div></div>`;
+  }).join("");
+  const arr = ARRIVALS.slice(0, 1).map((a) => {
+    const w = W[a.w], v = VEN[a.v];
+    return `<div class="card tap" onclick="openWine('${a.w}','home')">
+      <div style="display:flex;gap:14px;align-items:center">
+        <div style="width:70px;flex:none">${labelArt(a.w)}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700">${esc(v.name)}</div>
+          <div class="wname" style="font-size:16px;margin-top:2px">${esc(w.flat)}</div>
+          <div class="wsub">${w.vt ?? "NV"} / ${esc(w.prod)}</div>
+          <div class="evrow">${evArrival(a)}</div>
+        </div><div class="chev">›</div></div></div>`;
+  }).join("");
+  return `<div class="sec" style="margin-top:8px">今夜開いています</div>${opens}
+    <div class="sec">フォロー中の店に入荷しました</div>${arr}
+    <div class="hint">抜栓・入荷は、店が在庫を記録すると自動で届きます。</div>`;
+}
+
+/* ================= 店の棚 ================= */
+function viewShelf(){
+  const v = VEN.sepal;
+  const inService = () => true;
+  const openIds = OPENS.filter((o) => o.v === "sepal").map((o) => o.w);
+  const rest = SHELF.filter((id) => !openIds.includes(id));
+  const wrow = (id, isOpen) => {
+    const w = W[id];
+    return `<div class="wrow ${isOpen ? "opencard" : ""} ${S.highlight === id ? "hl" : ""}" onclick="openWine('${id}','shelf')">
+      <div class="th">${labelArt(id)}</div>
+      <div class="bd">
+        ${S.highlight === id ? `<div class="hltag">入荷のお知らせ</div>` : ""}
+        <div class="wname" style="font-size:16px">${esc(w.flat)}</div>
+        <div class="wsub">${w.vt ?? "NV"} / ${esc(w.prod)}</div>
+        <div class="evrow">${evidenceFor(id, "sepal")}</div>
+      </div><div class="chev">›</div></div>`;
+  };
+  const jitem = (id) => {
+    const w = W[id];
+    return `<button class="jitem" onclick="openWine('${id}','shelf')">${labelArt(id)}
+      <span class="cap"><span class="n">${esc(w.flat)}</span><span class="s">${w.vt ?? "NV"} / ${esc(w.prod)}</span>
+      <span class="evrow" style="margin-top:5px">${evidenceFor(id, "sepal")}</span></span></button>`;
+  };
+  const body = S.shelfJacket
+    ? `<div class="jgrid">${openIds.concat(rest).map(jitem).join("")}</div>`
+    : `${openIds.length ? `<div class="sec">今夜開いています</div>${openIds.map((id) => wrow(id, true)).join("")}` : ""}
+       <div class="sec">現在の在庫・入荷<span class="r">
+         <button class="viewtoggle" onclick="S.shelfJacket=!S.shelfJacket;render()">${I.grid}ジャケット</button></span></div>
+       ${rest.map((id) => wrow(id, false)).join("")}`;
+  return `<div>
+      <button class="back" onclick="S.tab='discover';S.shelfView=false;render()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>探す</button>
+      <div style="font-family:var(--serif);font-size:21px;font-weight:600;margin-top:6px">${esc(v.name)}</div>
+      <div style="display:flex;gap:12px;align-items:center;margin-top:3px;font-size:12.5px"><span class="open">${v.open}</span><span class="meta">${v.walk}</span></div>
+      <div style="display:flex;gap:8px;margin:12px 0 4px">
+        <button class="tchip" onclick="toast('デモのため地図は省略しています')">地図</button>
+        <button class="tchip" onclick="toast('デモのため予約は省略しています')">予約</button>
+        <button class="tchip ${S.following ? "on" : ""}" onclick="S.following=!S.following;render();toast(S.following?'フォローしました':'フォローを外しました')">${S.following ? "✓ フォロー中" : "＋ フォロー"}</button>
+      </div>
+      <div class="meta" style="margin:10px 2px 0">この店はPOS連携で在庫を更新しています（T2）</div>
+      ${S.shelfJacket ? `<div class="sec">ワイン<span class="r"><button class="viewtoggle" onclick="S.shelfJacket=false;render()">${I.list}一覧</button></span></div>` : ""}
+    </div>${body}
+    <div class="hint">売り切れは自動で表示から消えます。</div>`;
+}
+
+/* ================= ワイン公開ページ ================= */
+function ovWine(id){
+  const w = W[id];
+  const vs = venuesFor(id);
+  const sorted = vs.sort((a, b) => (openOf(id, b) ? 1 : 0) - (openOf(id, a) ? 1 : 0));
+  const rows = sorted.map((vk) => {
+    const v = VEN[vk];
+    return `<div class="avrow" onclick="goShelf('${vk}','${id}')">
+      <div class="vphoto ${v.photo}" style="width:64px;min-height:58px"><span>${v.mono}</span></div>
+      <div class="bd"><div class="vn">${esc(v.name)}</div>
+        <div class="meta"><span class="open">営業中</span>・${v.walk}</div>
+        <div class="evrow">${evidenceFor(id, vk)}</div>
+      </div><div class="chev">›</div></div>`;
+  }).join("");
+  const rec = CELLAR.find((e) => e.w === id);
+  return `<div class="ov">
+    <div class="bar"><button class="back" onclick="S.overlay=null;render()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>戻る</button>
+      <span class="sp"><button class="icbtn" aria-label="保存" onclick="toast('保存しました（デモ）')">${I.book}</button></span></div>
+    <div class="body">
+      <div class="detail-lab">${labelArt(id)}</div>
+      <div class="d-name">${esc(w.flat)}</div>
+      <div class="d-sub">${w.vt ?? "NV"} / ${esc(w.prod)}</div>
+      <div class="pills"><span class="pill type">${w.type}</span><span class="pill">${esc(w.region)}</span></div>
+      ${rec ? `<div class="meta" style="text-align:center;margin-top:9px">${rec.d}に記録しています</div>` : ""}
+      ${S.phase === 0 || vs.length === 0
+        ? `<div class="card" style="text-align:center;margin-top:16px">現在、飲めるお店の情報はありません
+             <div class="meta" style="margin-top:5px">保存しておくと、飲めるお店ができたときにお知らせします</div>
+             <button class="btn" style="margin-top:13px" onclick="toast('お知らせを受け取ります（デモ）')">飲める店ができたら知らせる</button></div>`
+        : `<div class="sec">今飲める店<span style="font-weight:400">・${vs.length}件</span></div>${rows}`}
+      ${w.maker
+        ? `<div class="box" style="margin-top:14px"><div class="tt">造り手のこと</div>${esc(w.maker)}<div class="src">${esc(w.src)}</div></div>
+           <div class="box"><div class="tt">合わせるなら</div>${esc(w.pair)}</div>`
+        : `<div class="box" style="margin-top:14px"><div class="tt">このワインについて</div>
+             <span class="meta">${esc(w.type)}／${esc(w.region)}${w.vt ? `／${w.vt}` : ""}</span>
+             <div class="src">詳しい紹介はまだありません（憶測で埋めず、確かな情報が揃ってから掲載します）</div></div>`}
+      <div class="cta"><button class="btn" onclick="startRecord('${id}', null, 'wine')">飲んだ記録をつける</button></div>
+    </div></div>`;
+}
+
+/* ================= カメラ / 読み取り ================= */
+function taskCamera(){
+  return `<div class="cam">
+    <div class="bar"><button class="x" onclick="S.task=null;render()">✕</button><span class="c">ラベルを撮影</span></div>
+    <div class="vf">
+      <div class="frame"><span class="corner c1"></span><span class="corner c2"></span><span class="corner c3"></span><span class="corner c4"></span>
+        <div class="inlab">${labelArt("w03")}</div></div>
+      <div class="guide">ラベル全体が枠に入るように<br>撮ってください</div>
+    </div>
+    <div class="ctl"><button class="shutter" onclick="shoot()" aria-label="撮影する"></button></div>
+    <button class="lib" onclick="shoot()">${I.photo}写真ライブラリから選ぶ</button></div>`;
+}
+const taskReading = () => `<div class="cam"><div class="reading"><div class="spin"></div>ラベルを読み取っています…</div></div>`;
+
+function taskResult(){
+  const r = S.rec, w = wineOf(r.variant);
+  const vs = S.phase === 2 ? venuesFor(r.variant) : [];
+  return `<div class="ov">
+    <div class="bar"><button class="back" onclick="S.rec=null;S.task=null;render()">キャンセル</button><span class="c">読み取り結果</span></div>
+    <div class="body">
+      <div class="wsum"><div class="th">${labelArt(r.variant)}</div>
+        <div style="flex:1;min-width:0">
+          <div class="wname" style="font-size:17px">${esc(w.flat)}</div>
+          <div class="wsub">${w.vt ?? "NV"} / ${esc(w.prod)}</div>
+        </div></div>
+      <div class="fixline">${I.pencil}<button class="tlink" onclick="S.task='correct';render()">違うワインですか？</button></div>
+
+      ${w.maker
+        ? `<div class="box"><div class="tt">造り手のこと</div>${esc(w.maker)}<div class="src">${esc(w.src)}</div></div>
+           <div class="box"><div class="tt">合わせるなら</div>${esc(w.pair)}</div>`
+        : `<div class="box"><div class="tt">このワインについて</div><span class="meta">${esc(w.type ?? "")}／${esc(w.region ?? "")}</span>
+             <div class="src">詳しい紹介はまだありません</div></div>`}
+      ${vs.length ? `<div class="box"><div class="tt">この銘柄が飲める店</div>
+          ${vs.map((vk) => `<div style="display:flex;align-items:center;gap:8px;padding:4px 0"><b style="font-size:12.5px">${esc(VEN[vk].name)}</b><span style="margin-left:auto"></span></div><div class="evrow" style="margin:0 0 6px">${evidenceFor(r.variant, vk)}</div>`).join("")}
+        </div>` : ""}
+
+      <div class="flabel">日付と場所<span class="opt">任意</span></div>
+      <div class="card" style="margin-bottom:0;padding:13px 15px;font-size:13px">今日・2026年8月3日
+        <div style="margin-top:5px"><button class="tlink" onclick="S.placePicker=true;render()">${r.place ? esc(r.place) : "場所を選ぶ"} ›</button></div></div>
+
+      <div class="flabel">このワインは好みでしたか？<span class="opt">任意</span></div>
+      <div class="seg3">${["好みではない","ふつう","好み"].map((x) => `<button class="${r.rate === x ? "on" : ""}" onclick="setRate('${x}')">${x}</button>`).join("")}</div>
+      <div class="togglerow" onclick="S.rec.mtai=!S.rec.mtai;render()">${I.book}また飲みたい<span class="sw ${r.mtai ? "on" : ""}"></span></div>
+
+      <div class="flabel">ひとことメモ<span class="opt">任意</span></div>
+      <div class="memoarea" onclick="toast('デモのため入力は省略しています')">料理や香り、飲んだときのこと</div>
+
+      <div class="detailrow" onclick="S.task='details';render()">${I.slider}詳しく記録する<span class="chev">›</span></div>
+      <div class="note">評価なしでも保存できます</div>
+      <button class="btn fill" onclick="saveRecord()">記録を保存</button>
+    </div></div>`;
+}
+
+function taskCorrect(){
+  return `<div class="ov">
+    <div class="bar"><button class="back" onclick="S.task='result';render()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>読み取り結果へ</button><span class="c">ワインを訂正</span></div>
+    <div class="body">
+      <div class="search" onclick="toast('デモのため検索は省略しています')">${I.search}ワイン名・造り手で検索</div>
+      <div class="sec">候補</div>
+      ${CANDIDATES.map((c) => `<div class="cand ${S.correctPick === c.id ? "on" : ""}" onclick="S.correctPick='${c.id}';render()">
+        <div class="th">${labelArt(c.id)}</div>
+        <div class="bd"><div class="wname" style="font-size:16px">${esc(c.flat ?? W[c.id].flat)}</div>
+          <div class="wsub">${esc(c.prod)}</div><div class="meta">${c.vt}</div></div>
+        <div class="radio"></div></div>`).join("")}
+      <div style="text-align:center;margin:14px 0 18px"><button class="tlink" onclick="toast('デモのため手入力は省略しています')">見つからない場合は手入力</button></div>
+      <button class="btn fill" onclick="applyCorrect()">このワインに訂正</button>
+      <div class="note">評価やメモは消えません</div>
+    </div></div>`;
+}
+
+function taskDetails(){
+  const r = S.rec, w = wineOf(r.variant);
+  return `<div class="ov">
+    <div class="bar"><button class="back" onclick="S.task='result';render()">‹ 簡単な記録へ</button><span class="c">詳しく記録</span></div>
+    <div class="body">
+      <div class="wsum"><div class="th">${labelArt(r.variant)}</div>
+        <div style="flex:1;min-width:0"><div class="wname" style="font-size:16.5px">${esc(w.flat)}</div>
+          <div class="wsub">${w.vt ?? "NV"} / ${esc(w.prod)}</div></div></div>
+      <div class="meta" style="margin:10px 2px 0">覚えている範囲で大丈夫です</div>
+      <div class="flabel">味わいの印象<span class="opt">任意</span></div>
+      <div class="sliderbox">${SLIDERS.map((s, i) => {
+        const set = r.sliders[i] !== undefined;
+        return `<div class="srow ${set ? "" : "unset"}"><span class="l">${s[0]}</span>
+          <input type="range" min="0" max="100" step="25" value="${set ? r.sliders[i] : 50}" aria-label="${s[0]}から${s[1]}"
+            oninput="S.rec.sliders[${i}]=Number(this.value)" onchange="render()"><span class="r">${s[1]}</span></div>`;
+      }).join("")}
+        <div class="sfoot">選んでいない項目は保存されません${Object.keys(r.sliders).length ? `<button class="tlink" onclick="S.rec.sliders={};render()">すべて未選択に戻す</button>` : ""}</div></div>
+      <div class="flabel">印象に残った香り・風味<span class="opt">任意</span></div>
+      <div class="chiprow">${AROMAS.map((a) => `<button class="tchip ${r.aromas.has(a) ? "on" : ""}" onclick="toggleAroma('${a}')">${a}</button>`).join("")}</div>
+      <div class="note">あとから編集できます</div>
+      <button class="btn fill" onclick="saveRecord()">詳細を保存</button>
+    </div></div>`;
+}
+
+function taskShowcase(){
+  const again = CELLAR.filter((e) => e.mtai).slice(0, 3);
+  const n = CELLAR.length;
+  /* 3件未満は傾向を出さない・3〜4件は「いまのところ」（仕様§P10・§P05と同じ抑制ルール） */
+  const trend = n < 3
+    ? `<div class="blk" style="text-align:center;padding:22px 6px">
+         <div style="font-size:15px;line-height:1.9">記録がまだ${n}件なので、<br>好みの傾向はこれからです</div></div>`
+    : `${n < 5 ? `<div class="cnt" style="margin:-14px 0 20px">いまのところの傾向です</div>` : ""}
+       <div class="blk"><div class="t">よく選ぶ色</div><div class="big">赤ワイン</div></div>
+       <div class="blk"><div class="t">好みに多い言葉</div>
+         <div><span class="wchip">酸がしっかり</span><span class="wchip">ミネラル</span><span class="wchip">スパイス</span></div></div>
+       <div class="blk"><div class="t">よく選ぶ産地</div>
+         <div><span class="wchip">フランス</span><span class="wchip">イタリア</span></div></div>`;
+  return `<div class="showcase">
+    <div class="bar"><button class="x" onclick="S.task=null;render()">✕</button><span class="c">お店の方に見せる</span></div>
+    <h2>いまの好み</h2>
+    <div class="cnt">${n}件の記録から集計</div>
+    ${trend}
+    ${again.length ? `<div class="blk"><div class="t">また飲みたいワイン</div>
+      ${again.map((e) => `<div class="wl"><div class="th">${labelArt(e.w)}</div>
+        <div><div class="n">${esc(W[e.w].flat)}</div><div class="s">${W[e.w].vt ?? "NV"} / ${esc(W[e.w].prod)}</div></div></div>`).join("")}</div>` : ""}
+    <div class="fin">記録から集計した、いまの傾向です</div></div>`;
+}
+
+function sheetPlace(){
+  return `<div style="position:absolute;inset:0;background:rgba(30,22,20,.42);z-index:12;display:flex;align-items:flex-end" onclick="S.placePicker=false;render()">
+    <div style="background:var(--bg);border-radius:18px 18px 0 0;width:100%;padding:18px 18px calc(20px + env(safe-area-inset-bottom))" onclick="event.stopPropagation()">
+      <h3 style="font-size:15.5px;font-weight:700;margin:0 0 3px">どこで飲みましたか？</h3>
+      <div class="meta" style="margin-bottom:14px">あとから変更できます。選ばなくても保存できます</div>
+      ${PLACES.map((p) => `<div class="card tap" style="margin-bottom:9px;padding:14px 15px;font-weight:700;font-size:14px" onclick="setPlace('${p}')">${p}</div>`).join("")}
+    </div></div>`;
+}
+
+/* ================= actions ================= */
+function startCamera(){ S.task = "camera"; render(); }
+function shoot(){
+  S.task = "reading"; render();
+  setTimeout(() => { startRecord("w03", null, "camera"); }, 1300);
+}
+function startRecord(variant, place, entry){
+  S.rec = { variant, place: place ?? null, rate:null, mtai:false, aromas:new Set(), sliders:{}, entry };
+  S.correctPick = variant; S.task = "result"; S.overlay = null; render();
+}
+function applyCorrect(){
+  const picked = S.correctPick;
+  if (!W[picked]) { toast("デモではこの候補の詳細は用意していません"); return; }
+  S.rec.variant = picked; S.task = "result"; render(); toast("訂正内容を保存しました");
+}
+function setRate(x){ S.rec.rate = S.rec.rate === x ? null : x; render(); }
+function toggleAroma(a){ S.rec.aromas.has(a) ? S.rec.aromas.delete(a) : S.rec.aromas.add(a); render(); }
+function setPlace(p){ S.rec.place = p === "場所を記録しない" ? null : p; S.placePicker = false; render(); }
+function saveRecord(){
+  const r = S.rec;
+  const rec = { d:"今日", place:r.place, w:r.variant, src:"camera", rate:r.rate, mtai:r.mtai, memo:"", aromas:[...r.aromas] };
+  CELLAR = [rec, ...CELLAR];
+  S.justSaved = rec; S.rec = null; S.task = null; S.tab = "records"; S.overlay = null;
+  render(); toast("この端末に記録を保存しました");
+  setTimeout(() => { if (S.justSaved === rec) { S.justSaved = null; render(); } }, 4000);
+}
+function openWine(id, entry){ S.overlay = id; S.entry = entry ?? "discover"; render(); }
+function goShelf(v, hl){
+  if (v !== "sepal") { toast("デモではRestaurant Sépalの棚のみ用意しています"); return; }
+  S.phase = 2; S.tab = "discover"; S.shelfView = true; S.overlay = null; S.highlight = hl ?? null; render();
+}
+function setTab(t){ S.tab = t; S.overlay = null; S.shelfView = false; render(); }
+function togglePhase(){
+  S.phase = S.phase === 0 ? 2 : 0;
+  S.tab = S.phase === 0 ? "records" : "home";
+  S.overlay = null; S.shelfView = false; render();
+  toast(S.phase === 0 ? "Phase 0: 連携店ゼロの状態" : "Phase 2: 連携店が増えた状態");
+}
+let tt = null;
+function toast(m){ const t = $("toast"); t.textContent = m; t.classList.add("show"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("show"), 2200); }
+
+/* ================= root ================= */
+function topBar(){
+  const ph = `<button class="phasebtn" onclick="togglePhase()">${S.phase === 0 ? "P0" : "P2"}</button>`;
+  if (S.tab === "records") return `<div class="brand">Cellar Note</div><span class="sp">${ph}</span>`;
+  if (S.tab === "home") return `<div class="brand">Cellar Note</div><span class="sp">
+    <button class="area" onclick="toast('デモのためエリア切替は省略しています')">銀座・丸の内 ▾</button>
+    <button class="icbtn" onclick="toast('通知はホームに表示しています（デモ）')">${I.bell}<span class="nb">1</span></button>${ph}</span>`;
+  if (S.shelfView) return "";
+  return `<div class="ttl">探す</div><span class="sp">${S.phase === 2 ? `<button class="area" onclick="toast('デモのためエリア切替は省略しています')">銀座・丸の内 ▾</button>` : ""}${ph}</span>`;
+}
+function bottomBar(){
+  const camBtn = `<button class="camtab" onclick="startCamera()"><span class="ring">${I.cam}</span>撮る</button>`;
+  const t = (id, ic, label) => `<button class="tab ${S.tab === id ? "on" : ""}" onclick="setTab('${id}')">${ic}${label}</button>`;
+  return `<div class="tabs">${S.phase === 0
+    ? t("records", I.note, "記録") + camBtn + t("discover", I.search, "探す")
+    : t("home", I.home, "ホーム") + t("discover", I.search, "探す") + camBtn + t("records", I.note, "記録")}</div>`;
+}
+function render(){
+  let html;
+  if (S.task === "camera") html = taskCamera();
+  else if (S.task === "reading") html = taskReading();
+  else if (S.task === "result") html = taskResult();
+  else if (S.task === "correct") html = taskCorrect();
+  else if (S.task === "details") html = taskDetails();
+  else if (S.task === "showcase") html = taskShowcase();
+  else {
+    const view = S.tab === "records" ? viewRecords()
+      : S.tab === "home" ? viewHome()
+      : S.shelfView ? viewShelf() : viewDiscover();
+    const top = topBar();
+    html = `${top ? `<div class="top">${top}</div>` : ""}<div class="view">${view}</div>${bottomBar()}
+      ${S.overlay ? ovWine(S.overlay) : ""}`;
+  }
+  $("scr").innerHTML = html + (S.placePicker ? sheetPlace() : "") + `<div class="toast" id="toast"></div>`;
+  fitLabels();
+}
+window.addEventListener("resize", fitLabels);
+const h = location.hash.replace("#", "");
+if (h === "empty") CELLAR = [];
+if (h === "discover") S.tab = "discover";
+if (h === "p2") { S.phase = 2; S.tab = "home"; }
+if (h === "shelf") { S.phase = 2; S.tab = "discover"; S.shelfView = true; }
+if (h === "shelfjacket") { S.phase = 2; S.tab = "discover"; S.shelfView = true; S.shelfJacket = true; }
+if (h === "wine") { S.phase = 2; S.overlay = "w03"; }
+if (h === "wine0") S.overlay = "w11";
+if (h === "camera") S.task = "camera";
+if (h === "result") startRecord("w03", null, "camera");
+if (h === "correct") { startRecord("w03", null, "camera"); S.task = "correct"; }
+if (h === "details") { startRecord("w03", null, "camera"); S.task = "details"; }
+if (h === "showcase") S.task = "showcase";
+render();
+</script>
+</body>
+</html>
