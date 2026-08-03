@@ -146,13 +146,14 @@
   .entry.justsaved{background:var(--wine-weak);border-color:var(--wine-bd)}
   .entry .th{width:48px;flex:none}
   .entry .bd{flex:1;min-width:0}
-  .entry .when{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:7px;flex-wrap:wrap}
-  .entry .wname{font-size:15px;margin-top:2px}
-  .entry .mtai{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--wine);margin-top:5px}
-  .entry .mtai svg{width:13px;height:13px}
-  .entry .memo{font-size:12.5px;color:var(--ink-2);margin-top:7px;padding:1px 0 1px 12px;border-left:2px solid var(--line-2);line-height:1.65;
+  .entry .ehead{display:flex;align-items:center;gap:7px}
+  .entry .wname{font-size:15.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .entry .when{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:2px}
+  .entry .mtai{display:flex;align-items:center;color:var(--wine);flex:none}
+  .entry .mtai svg{width:15px;height:15px}
+  .entry .memo{font-size:12.5px;color:var(--ink-2);margin-top:8px;line-height:1.7;
     display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-  .ratechip{margin-left:auto;flex:none;align-self:flex-start;font-size:11px;font-weight:700;border-radius:99px;padding:3px 11px}
+  .ratechip{flex:none;font-size:11px;font-weight:700;border-radius:99px;padding:3px 11px}
   .ratechip.like{background:var(--wine-weak);color:var(--wine)}
   .ratechip.mid{background:#efece7;color:var(--ink-2)}
   .badge{font-size:9.5px;font-weight:700;border-radius:99px;padding:2px 8px}
@@ -425,18 +426,25 @@ const I = {
   cellarart:'<svg viewBox="0 0 64 40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="2" y="6" width="22" height="30" rx="2"/><path d="M2 16h22M2 26h22M13 6v30"/><path d="M34 36V16a4 4 0 012-3.4V6h6v6.6A4 4 0 0144 16v20z"/><path d="M52 12h9l-1 6a3.5 3.5 0 01-7 0z"/><path d="M56.5 21v9M53 30h7"/></svg>',
 };
 
-/* 根拠バッジ（種類ごとに別コンポーネント・文言を合成しない） */
+/* 根拠バッジ。一覧では数量も時刻も出さず「飲めるか / 取り扱いだけか」の3段だけを示す。
+   鮮度はバッジの文言そのものが表す（古い情報を「飲めます」と書かない）ため、
+   時刻を出さなくても誤った期待を作らない。時刻はワイン詳細でのみ補足する。 */
 const evStock = (s) => {
-  const lab = s.state === "low" ? `${s.unit} 残り${s.n}本`
-    : s.state === "stale" ? "情報が古い可能性"
-    : s.state === "unknown" ? "在庫確認中"
-    : `${s.unit} ${s.unit === "グラス" ? "提供あり" : "在庫あり"}`;
-  const cls = s.state === "ok" ? "stock" : s.state;
-  return `<span class="ev ${cls}">${lab}</span><span class="fresh">${s.upd}</span>`;
+  if (s.state === "stale" || s.state === "unknown") return `<span class="ev unknown">取り扱いあり</span>`;
+  if (s.state === "low") return `<span class="ev low">残りわずか</span>`;
+  return `<span class="ev stock">${s.unit === "グラス" ? "グラスで飲めます" : "飲めます"}</span>`;
 };
-const evOpen = (o) => `<span class="ev opennow">${I.glass}今夜開いています</span><span class="fresh">${o.at}</span>`;
-const evArrival = (a) => `<span class="ev arrival">${I.box}${a.at}</span>`;
-const evEvidence = (e) => `<span class="ev evid">${I.people}${e.at}</span>`;
+const evOpen = () => `<span class="ev opennow">${I.glass}今夜開いています</span>`;
+const evArrival = () => `<span class="ev unknown">取り扱いあり</span>`;
+const evEvidence = () => `<span class="ev unknown">取り扱いあり</span>`;
+/* 詳細画面だけの補足: 最終確認の時刻（行くかどうかを決める場所なので根拠を出す） */
+const freshNote = (w, v) => {
+  const o = openOf(w, v); if (o) return o.at;
+  const s = stockOf(w, v); if (s) return `最終確認 ${s.upd.replace("更新", "")}`;
+  const a = arrivalOf(w, v); if (a) return a.at;
+  const e = evidOf(w, v); if (e) return e.at;
+  return "";
+};
 
 const openOf = (w, v) => OPENS.find((o) => o.w === w && (!v || o.v === v));
 const stockOf = (w, v) => STOCKS.find((s) => s.w === w && (!v || s.v === v));
@@ -496,12 +504,13 @@ function viewRecords(){
     return `<div class="entry ${S.justSaved === e ? "justsaved" : ""}" onclick="openWine('${e.w}','record')">
       <div class="th">${labelArt(e.w)}</div>
       <div class="bd">
-        <div class="when">${e.d}${e.place ? `・${esc(e.place)}` : ""}${e.src === "auto" ? `<span class="badge auto">自動記録</span>` : ""}</div>
-        <div class="wname">${esc(w.flat)}</div>
-        <div class="wsub">${w.vt ?? "NV"} / ${esc(w.prod)}</div>
-        ${e.mtai ? `<div class="mtai">${I.book}また飲みたい</div>` : ""}
+        <div class="ehead">
+          <span class="wname">${esc(w.flat)}</span>
+          ${e.mtai ? `<span class="mtai" title="また飲みたい">${I.book}</span>` : ""}
+          ${e.rate ? `<span class="ratechip ${e.rate === "好み" ? "like" : "mid"}">${e.rate}</span>` : ""}</div>
+        <div class="when">${w.vt ?? "NV"} / ${esc(w.prod)}　${e.d}${e.place ? `・${esc(e.place)}` : ""}${e.src === "auto" ? `<span class="badge auto">自動記録</span>` : ""}</div>
         ${e.memo ? `<div class="memo">${esc(e.memo)}</div>` : ""}
-      </div>${e.rate ? `<span class="ratechip ${e.rate === "好み" ? "like" : "mid"}">${e.rate}</span>` : ""}</div>`;
+      </div></div>`;
   }).join("");
   /* ジャケット表示: 飲んだラベルが並ぶ「自分の壁」。記録の見返りを視覚的に返す */
   const cells = list.map((e) => {
@@ -636,7 +645,7 @@ function ovWine(id){
       <div class="vphoto ${v.photo}" style="width:64px;min-height:58px"><span>${v.mono}</span></div>
       <div class="bd"><div class="vn">${esc(v.name)}</div>
         <div class="meta"><span class="open">営業中</span>・${v.walk}</div>
-        <div class="evrow">${evidenceFor(id, vk)}</div>
+        <div class="evrow">${evidenceFor(id, vk)}<span class="fresh">${freshNote(id, vk)}</span></div>
       </div><div class="chev">›</div></div>`;
   }).join("");
   const rec = CELLAR.find((e) => e.w === id);
